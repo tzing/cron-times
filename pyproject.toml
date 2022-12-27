@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "cron-times"
+version = "0.1.0"
+description = "Show schdueled jobs in a more readable way"
+authors = ["tzing <tzingshih@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+packages = [{include = "cron_times"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+flask = "^2.2.2"
+pypugjs = "^5.9.12"
+croniter = "^1.3.8"
+pyyaml = "^6.0"
+markdown2 = "^2.4.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
