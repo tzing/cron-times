@@ -78,7 +78,7 @@ html(lang='en')
                     {%- endfor %}
                   {%- endif %}
                   br
-                  small Schedule: <code>{{ job.schedule }}</code>; Time: <span class='detail-time'></span> (<span class='relative-time'>--</span>)
+                  small Schedule: <code>{{ job.schedule }}</code> @{{ job.timezone }}; Time: <span class='detail-time'></span> (<span class='relative-time'>--</span>)
       {%- endfor %}
 
     //- Scripts

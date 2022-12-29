@@ -22,6 +22,7 @@ Show schdueled jobs in a more readable way.
    ```yaml
    - name: Job name
      schedule: "0 10 * * *"
+     timezone: Asia/Taipei  # tzdata format; Would use UTC if not provided
      description: In the description, you *can* use `markdown`
      labels:
        - sample-label

@@ -12,6 +12,7 @@ import markdown2
 import markupsafe
 import yaml
 
+DEFAULT_TIMEZONE = datetime.timezone.utc
 YAML_EXTENSIONS = (".yaml", ".yml")
 
 
@@ -49,7 +50,7 @@ def get_schedule():
             if isinstance(item, dict):
                 name = item.get("name")
                 schedule = item.get("schedule")
-
+                timezone = item.get("timezone")
                 desc = item.get("description") or None
                 labels = item.get("labels") or []
 
@@ -58,6 +59,7 @@ def get_schedule():
                         {
                             "name": name,
                             "schedule": schedule,
+                            "timezone": timezone,
                             "description": desc,
                             "labels": labels,
                         }
@@ -124,6 +126,16 @@ def render_markdown(s: str) -> str | None:
     )
 
 
+def get_timezone(name: str) -> tuple[str, datetime.tzinfo]:
+    if not name:
+        return DEFAULT_TIMEZONE.tzname(None), DEFAULT_TIMEZONE
+    try:
+        zone = zoneinfo.ZoneInfo(name)
+        return zone.key, zone
+    except zoneinfo.ZoneInfoNotFoundError:
+        return "unknown", None
+
+
 @app.route("/")
 def timetable():
     now = datetime.datetime.now()
@@ -132,16 +144,21 @@ def timetable():
 
     unsorted_jobs = []
     for item in get_schedule():
-        for dt in croniter.croniter_range(
-            query_time_start, query_time_end, item["schedule"]
-        ):
+        name = markupsafe.Markup(item["name"])
+        desc = render_markdown(item["description"])
+        labels = [markupsafe.Markup(l) for l in item["labels"]]
+        schedule = item["schedule"]
+        tz_name, tz_object = get_timezone(item["timezone"])
+
+        for dt in croniter.croniter_range(query_time_start, query_time_end, schedule):
             unsorted_jobs.append(
                 {
-                    "name": markupsafe.Markup(item["name"]),
-                    "datetime": dt,
-                    "description": render_markdown(item["description"]),
-                    "labels": item["labels"],
-                    "schedule": item["schedule"],
+                    "name": name,
+                    "datetime": dt.replace(tzinfo=tz_object),
+                    "description": desc,
+                    "labels": labels,
+                    "schedule": schedule,
+                    "timezone": tz_name,
                 }
             )
 
