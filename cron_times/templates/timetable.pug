@@ -37,11 +37,12 @@ html(lang='en')
 
         //- control panel
         #navbarSupportedContent.collapse.navbar-collapse.justify-content-end
-          .d-flex
+          form.d-flex
             select#timezone.form-select
               {% for tz in timezones %}
               option(value='{{ tz.name }}') ({{ tz.offset_display }}) {{ tz.short_name }}
-              {% endfor %}
+              {%- endfor %}
+            button#gotoNow.btn.btn-outline-light.ms-2(type='button') Now
 
     //- jobs
     #timetable.container
@@ -89,6 +90,7 @@ html(lang='en')
     script(src='https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.7/plugin/isToday.min.js' integrity='sha512-wDcF/3o0NA8ZSiwAQwhkCs7wMb8RKAn/jkW4b3tlxassNYUO46MsD0MuFOc16LNtkmkCH+qxQTAc+3/5JsTEoA==' crossorigin='anonymous' referrerpolicy='no-referrer')
     script(src='https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.7/plugin/isTomorrow.min.js' integrity='sha512-vLarZYh+kxl2xV1XWlR4a1RmYYMo4x/wKxGoEej5Pl0GocYdniaoNX59/Yi5mbkSWvEbU2KG8xDGrbf5Z+rLKw==' crossorigin='anonymous' referrerpolicy='no-referrer')
     script(src='https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.7/plugin/isYesterday.min.js' integrity='sha512-rUcTkOsI327H2BdFMhZGTvQN9uIkzNWXmun/GuK8LnVzk5AiczjnbBfN41PokBGxLyMU6tWOR/BbzbFIrji8Kg==' crossorigin='anonymous' referrerpolicy='no-referrer')
+    script(src='{{ url_for("static", filename="timetable.js") }}')
 
     script.
       'use strict';
