@@ -26,14 +26,22 @@ html(lang='en')
     title {{ title }}
 
   body
-    nav.navbar.sticky-top.navbar-dark.bg-primary
+    //- navbar & control panel
+    nav.navbar.navbar-expand-md.sticky-top.navbar-dark.bg-primary
       .container
         .navbar-brand {{ title }}
-        .d-flex
-          select#timezone.form-select
-            {% for tz in timezones %}
-            option(value='{{ tz.name }}') ({{ tz.offset_display }}) {{ tz.short_name }}
-            {% endfor %}
+
+        //- hamburger
+        button.navbar-toggler(type='button', data-bs-toggle='collapse', data-bs-target='#navbarSupportedContent')
+          span.navbar-toggler-icon
+
+        //- control panel
+        #navbarSupportedContent.collapse.navbar-collapse.justify-content-end
+          .d-flex
+            select#timezone.form-select
+              {% for tz in timezones %}
+              option(value='{{ tz.name }}') ({{ tz.offset_display }}) {{ tz.short_name }}
+              {% endfor %}
 
     //- jobs
     #timetable.container
@@ -52,7 +60,7 @@ html(lang='en')
         .card
           .row
             .col-md-2.time-container
-              .time(data-datetime="{{ job.datetime }}")
+              .time(data-datetime='{{ job.datetime }}')
                 h4 --:--
             .col-md-10
               .card-body
@@ -65,14 +73,15 @@ html(lang='en')
                   small.
                     Labels:
                     {% for lb in job.labels %}
-                    <span class="badge bg-secondary me-1">{{ lb }}</span>
+                    <span class='badge bg-secondary me-1'>{{ lb }}</span>
                     {% endfor %}
                   {%- endif %}
                   br
-                  small Schedule: <code>{{ job.schedule }}</code>; Time: <span class="detail-time"></span> (<span class="relative-time">--</span>)
+                  small Schedule: <code>{{ job.schedule }}</code>; Time: <span class='detail-time'></span> (<span class='relative-time'>--</span>)
       {%- endfor %}
 
     //- Bootstrap Bundle with Popper
+    script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js' integrity='sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM' crossorigin='anonymous')
     script(src='https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.7/dayjs.min.js' integrity='sha512-hcV6DX35BKgiTiWYrJgPbu3FxS6CsCjKgmrsPRpUPkXWbvPiKxvSVSdhWX0yXcPctOI2FJ4WP6N1zH+17B/sAA==' crossorigin='anonymous' referrerpolicy='no-referrer')
     script(src='https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.7/plugin/utc.min.js' integrity='sha512-z84O912dDT9nKqvpBnl1tri5IN0j/OEgMzLN1GlkpKLMscs5ZHVu+G2CYtA6dkS0YnOGi3cODt3BOPnYc8Agjg==' crossorigin='anonymous' referrerpolicy='no-referrer')
     script(src='https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.7/plugin/timezone.min.js' integrity='sha512-fG1tT/Wn/ZOyH6/Djm8HQBuqvztPQdK/vBgNFLx6DQVt3yYYDPN3bXnGZT4z4kAnURzGQwAnM3CspmhLJAD/5Q==' crossorigin='anonymous' referrerpolicy='no-referrer')
