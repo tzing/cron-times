@@ -148,38 +148,8 @@ html(lang='en')
 
           // refresh time labels
           document.querySelectorAll('.time').forEach((e) => {
-            let dateTime = dayjs(e.dataset.datetime);
-
-            // show brief exec time
-            let timeStr = dateTime.tz(settings.timeZone).format('HH:mm');
-            let briefExecStr = `<h4>${timeStr}</h4>`;
-
-            let dateStr = undefined;
-            if (dateTime.isTomorrow()) {
-              dateStr = 'Tomorrow';
-            } else if (dateTime.isYesterday()) {
-              dateStr = 'Yesterday';
-            } else if (!dateTime.isToday()) {
-              dateStr = dateTime.format('MMM DD');
-            }
-            if (dateStr) {
-              briefExecStr = dateStr + briefExecStr;
-            }
-
-            e.innerHTML = briefExecStr;
-
-            // show detail time
             let cardDom = e.closest('.card');
-            let detailTimeLabel = cardDom.querySelector('.detail-time');
-            if (detailTimeLabel) {
-              detailTimeLabel.innerHTML = dateTime.format('YYYY-MM-DD HH:mm:ss Z');
-            }
-
-            // show relative time
-            let relativeTimeLabel = cardDom.querySelector('.relative-time');
-            if (relativeTimeLabel) {
-              relativeTimeLabel.innerHTML = dateTime.from(now);
-            }
+            updateTaskCardTime(cardDom, settings.timeZone);
           });
         }
 
