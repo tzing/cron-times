@@ -133,4 +133,4 @@ cython_debug/
 .vscode/
 
 # Data
-jobs/
+tasks/

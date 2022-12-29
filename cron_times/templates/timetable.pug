@@ -29,7 +29,7 @@ html(lang='en')
     //- navbar & control panel
     nav.navbar.navbar-expand-md.sticky-top.navbar-dark.bg-primary
       .container
-        .navbar-brand {{ title }}
+        .navbar-brand {{ title | safe }}
 
         //- hamburger
         button.navbar-toggler(type='button', data-bs-toggle='collapse', data-bs-target='#navbarSupportedContent')
@@ -65,20 +65,20 @@ html(lang='en')
                 h4 --:--
             .col-md-10
               .card-body
-                h5.card-title {{ job.name }}
+                h5.card-title {{ job.name | safe }}
                 {%- if job.description %}
-                p.card-text {{ job.description }}
+                p.card-text {{ job.description | markdown }}
                 {%- endif %}
                 p.card-text.text-muted
                   {%- if job.labels %}
                   small.
                     Labels:
-                    {% for lb in job.labels %}
-                    <span class='badge bg-secondary me-1'>{{ lb }}</span>
+                    {% for label in job.labels %}
+                    <span class='badge bg-secondary me-1'>{{ label | safe }}</span>
                     {%- endfor %}
                   {%- endif %}
                   br
-                  small Schedule: <code>{{ job.schedule }}</code> @{{ job.timezone }}; Time: <span class='detail-time'></span> (<span class='relative-time'>--</span>)
+                  small Schedule: <code>{{ job.schedule | safe }}</code> @{{ job.timezone | safe }}; Time: <span class='detail-time'></span> (<span class='relative-time'>--</span>)
       {%- endfor %}
 
     //- Scripts

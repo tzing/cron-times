@@ -1,75 +1,49 @@
 import datetime
 import functools
-import glob
 import logging
 import os
 import zoneinfo
-from pathlib import Path
 
 import croniter
 import flask
 import markdown2
-import markupsafe
-import yaml
 
-DEFAULT_TIMEZONE = datetime.timezone.utc
-YAML_EXTENSIONS = (".yaml", ".yml")
+import cron_times.tasks
 
+TASK_DIR = os.getenv("CRONTIMES_TASK_DIR", "tasks")
 
 app = flask.Flask(__name__)
 app.jinja_env.add_extension("pypugjs.ext.jinja.PyPugJSExtension")
 
+__tasks = None
+
 logger = logging.getLogger(__name__)
 
 
-@functools.cache
-def get_schedule():
-    # find files
-    base_dir = Path(os.getenv("TIMETABLE_SCHEDULE_DIR", "jobs/"))
-    base_dir = base_dir.resolve().absolute()
-    logger.info("Search for schedules in %s", base_dir)
+@app.route("/")
+def timetable():
+    now = datetime.datetime.now()
+    query_time_start = now - datetime.timedelta(days=1)
+    query_time_end = now + datetime.timedelta(days=2)
 
-    files: list[Path] = []
-    for ext in YAML_EXTENSIONS:
-        for filename in glob.glob(root_dir=base_dir, pathname="**" + ext):
-            files.append(base_dir / filename)
+    unsorted_jobs = []
+    for task in get_tasks():
+        timezone = zoneinfo.ZoneInfo(task["timezone"])
+        for dt in croniter.croniter_range(
+            query_time_start, query_time_end, task["schedule"]
+        ):
+            job = task.copy()
+            job["datetime"] = dt.replace(tzinfo=timezone)
+            unsorted_jobs.append(job)
 
-    logger.info("Found %d files: %s", len(files), ", ".join(str(p) for p in files))
+    jobs = sorted(unsorted_jobs, key=lambda d: d["datetime"])
 
-    # load
-    schedules = []
-    for filepath in files:
-        with filepath.open("rb") as fd:
-            data = yaml.safe_load(fd)
-
-        if not isinstance(data, list):
-            logger.warning("Schedule file %s is not a list", filepath)
-            continue
-
-        for item in data:
-            if isinstance(item, dict):
-                name = item.get("name")
-                schedule = item.get("schedule")
-                timezone = item.get("timezone")
-                desc = item.get("description") or None
-                labels = item.get("labels") or []
-
-                if name and schedule:
-                    schedules.append(
-                        {
-                            "name": name,
-                            "schedule": schedule,
-                            "timezone": timezone,
-                            "description": desc,
-                            "labels": labels,
-                        }
-                    )
-                    continue
-
-            logger.warning("Item %s in file %s is not a valid object", item, filepath)
-
-    logger.info("Load %s schedules", len(schedules))
-    return schedules
+    return flask.render_template(
+        "timetable.pug",
+        title=os.getenv("TIMETABLE_TITLE", "Cronjobs"),
+        timezones=get_timezones(),
+        jobs=jobs,
+    )
 
 
 @functools.cache
@@ -110,7 +84,7 @@ def get_timezones() -> list[dict]:
     return output
 
 
-@functools.cache
+@app.template_filter("markdown")
 def render_markdown(s: str) -> str | None:
     if not s:
         return None
@@ -126,47 +100,13 @@ def render_markdown(s: str) -> str | None:
     )
 
 
-def get_timezone(name: str) -> tuple[str, datetime.tzinfo]:
-    if not name:
-        return DEFAULT_TIMEZONE.tzname(None), DEFAULT_TIMEZONE
-    try:
-        zone = zoneinfo.ZoneInfo(name)
-        return zone.key, zone
-    except zoneinfo.ZoneInfoNotFoundError:
-        return "unknown", None
+def get_tasks():
+    global __tasks
+    if __tasks:
+        return __tasks
 
+    tasks = cron_times.tasks.load_tasks(TASK_DIR)
 
-@app.route("/")
-def timetable():
-    now = datetime.datetime.now()
-    query_time_start = now - datetime.timedelta(days=1)
-    query_time_end = now + datetime.timedelta(days=2)
-
-    unsorted_jobs = []
-    for item in get_schedule():
-        name = markupsafe.Markup(item["name"])
-        desc = render_markdown(item["description"])
-        labels = [markupsafe.Markup(l) for l in item["labels"]]
-        schedule = item["schedule"]
-        tz_name, tz_object = get_timezone(item["timezone"])
-
-        for dt in croniter.croniter_range(query_time_start, query_time_end, schedule):
-            unsorted_jobs.append(
-                {
-                    "name": name,
-                    "datetime": dt.replace(tzinfo=tz_object),
-                    "description": desc,
-                    "labels": labels,
-                    "schedule": schedule,
-                    "timezone": tz_name,
-                }
-            )
-
-    jobs = sorted(unsorted_jobs, key=lambda d: d["datetime"])
-
-    return flask.render_template(
-        "timetable.pug",
-        title=os.getenv("TIMETABLE_TITLE", "Cronjobs"),
-        timezones=get_timezones(),
-        jobs=jobs,
-    )
+    if not app.debug:  # always reload in debug
+        __tasks = tasks
+    return tasks
