@@ -42,11 +42,11 @@ html(lang='en')
               {% for tz in timezones %}
               option(value='{{ tz.name }}') ({{ tz.offset_display }}) {{ tz.short_name }}
               {%- endfor %}
-            button#gotoNow.btn.btn-outline-light.ms-2(type='button') Now
+            button#scrollToNow.btn.btn-outline-light.ms-2(type='button') Now
 
     //- jobs
     #timetable.container
-      #timecard-now.row.mt-3
+      #card-now.row.mt-3
         .card.text-white.bg-secondary
           .row
             .col-md-2.time-container
@@ -102,69 +102,25 @@ html(lang='en')
       dayjs.extend(window.dayjs_plugin_isYesterday);
 
     //- Custom
-    script(src='{{ url_for("static", filename="timetable.js") }}')
+    script(src='{{ url_for("static", filename="crontimes.js") }}')
     script.
       'use strict';
 
-      const STORAGE_KEY_TIME_ZONE = 'timeZone';
-
-      (function() {
-        let settings = {
-          timeZone: localStorage.getItem(STORAGE_KEY_TIME_ZONE) || Intl.DateTimeFormat().resolvedOptions().timeZone
-        };
-
-        function setTimeZone(v) {
-          settings.timeZone = v;
-          localStorage.setItem(STORAGE_KEY_TIME_ZONE, v);
-          refreshDatetime();
-        }
-
-        function refreshDatetime() {
-          let now = dayjs();
-
-          //- move 'now' card
-          let timeCardNow = document.getElementById('timecard-now');
-          timeCardNow.remove();
-
-          let timeCardContainer = document.getElementById('timetable');
-          let timeDoms = timeCardContainer.querySelectorAll('.time');
-          let nextDom = undefined;
-          for (let td of timeDoms) {
-            let t = dayjs(td.dataset.datetime);
-            if (t.isAfter(now)) {
-              nextDom = td;
-              break;
-            }
-          }
-
-          if (nextDom) {
-            let card = nextDom.closest('.card').closest('.row');
-            timeCardContainer.insertBefore(timeCardNow, card);
-          } else {
-            timeCardContainer.appendChild(timeCardNow);
-          }
-
-          timeCardNow.scrollIntoView({block: 'center'});
-
-          // refresh time labels
-          document.querySelectorAll('.time').forEach((e) => {
-            let cardDom = e.closest('.card');
-            updateTaskCardTime(cardDom, settings.timeZone);
-          });
-        }
-
-        //- init
-        (function() {
-          //- time zone
+      (function () {
+          // setup time zone dropdown
           let timeZoneSelectDom = document.getElementById('timezone');
-          timeZoneSelectDom.value = settings.timeZone;
+          timeZoneSelectDom.value = crontimes.getTimezone();
           timeZoneSelectDom.addEventListener('change', (e) => {
-            setTimeZone(e.target.value);
+            crontimes.setTimeZone(e.target.value);
           });
 
-          //- refresh times
-          refreshDatetime();
-        })();
+          // callback for 'now' button
+          document.getElementById('scrollToNow')
+              .addEventListener('click', crontimes.scrollToNow);
 
-        console.log('settings', settings); // TODO
+          // refresh time
+          crontimes.refreshTimes();
+
+          // scroll to now
+          crontimes.scrollToNow();
       })();
