@@ -112,10 +112,32 @@ const crontimes = (function () {
         card.querySelector('.relative-time').innerHTML = dateTime.from();
     }
 
+    /**
+     * Only show jobs that matches selected properties.
+     * @param {string} target
+     */
+    function filterJobs(target) {
+        for (let cardDom of timetable.querySelectorAll('.card')) {
+            let row = cardDom.closest('.row');
+            if (row.id === 'card-now') {
+                continue;
+            }
+
+            if (!target) {
+                row.classList.remove('hide');
+            } else if (row.classList.contains(target)) {
+                row.classList.remove('hide');
+            } else {
+                row.classList.add('hide');
+            }
+        }
+    }
+
     return {
-        scrollToNow: scrollToNow,
+        filterJobs: filterJobs,
         getTimezone: getTimezone,
-        setTimeZone: setTimeZone,
         refreshTimes: refreshTimes,
+        scrollToNow: scrollToNow,
+        setTimeZone: setTimeZone,
     }
 })();

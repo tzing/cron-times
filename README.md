@@ -4,6 +4,12 @@ Show schdueled jobs in a more readable way.
 
 ![screenshot](./screenshot.png)
 
+*features*
+
+* Easy configure - Setup job list in YAML format
+* Timezone supported - Able to configure server timezone and show the time in local time
+* Quick filtering - Allow customized label and quick lookup
+
 
 ## Usage
 

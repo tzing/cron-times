@@ -23,6 +23,10 @@ html(lang='en')
         padding-top: 0.3rem;
       }
 
+      .row.hide {
+        display: none;
+      }
+
     title {{ title }}
 
   body
@@ -37,12 +41,25 @@ html(lang='en')
 
         //- control panel
         #navbarSupportedContent.collapse.navbar-collapse.justify-content-end
-          form.d-flex
-            select#timezone.form-select
-              {% for tz in timezones %}
-              option(value='{{ tz.name }}') ({{ tz.offset_display }}) {{ tz.short_name }}
-              {%- endfor %}
-            button#scrollToNow.btn.btn-outline-light.ms-2(type='button') Now
+          .row.g-1
+            .col-md-auto.col-sm-12
+              //- dropdown: filter
+              select#filter.form-select
+                option(value='' selected) All
+                {% for name, index in indexes.items() %}
+                option(value='{{ index }}') {{ name }}
+                {%- endfor %}
+
+            .col-md-auto.col-sm-12
+              //- dropdown: timezone
+              select#timezone.form-select
+                {% for tz in timezones %}
+                option(value='{{ tz.name }}') ({{ tz.offset_display }}) {{ tz.short_name }}
+                {%- endfor %}
+
+            .col-md-auto.col-sm-12.d-grid.gap-2
+              //- button: now
+              button#scrollToNow.btn.btn-outline-light.ms-2(type='button') Now
 
     //- jobs
     #timetable.container
@@ -57,7 +74,7 @@ html(lang='en')
                 h4.card-title Now
 
       {%- for job in jobs %}
-      .row.mt-3
+      .row.mt-3(class="{{ job.indexes | join(' ') }}")
         .card
           .row
             .col-md-2.time-container
@@ -113,6 +130,11 @@ html(lang='en')
           timeZoneSelectDom.addEventListener('change', (e) => {
             crontimes.setTimeZone(e.target.value);
           });
+
+          // callback for filter dropdown
+          document.getElementById('filter').addEventListener('change', (e) => {
+            crontimes.filterJobs(e.target.value);
+          })
 
           // callback for 'now' button
           document.getElementById('scrollToNow')

@@ -2,6 +2,7 @@ import datetime
 import functools
 import logging
 import os
+import uuid
 import zoneinfo
 
 import croniter
@@ -16,18 +17,24 @@ app = flask.Flask(__name__)
 app.jinja_env.add_extension("pypugjs.ext.jinja.PyPugJSExtension")
 
 __tasks = None
+__indexes = None
 
 logger = logging.getLogger(__name__)
 
 
 @app.route("/")
 def timetable():
+    # decide time range
     now = datetime.datetime.now()
     query_time_start = now - datetime.timedelta(days=1)
     query_time_end = now + datetime.timedelta(days=2)
 
+    # get tasks
+    tasks, indexes = get_tasks()
+
+    # get jobs in the selected time range
     unsorted_jobs = []
-    for task in get_tasks():
+    for task in tasks:
         timezone = zoneinfo.ZoneInfo(task["timezone"])
         for dt in croniter.croniter_range(
             query_time_start, query_time_end, task["schedule"]
@@ -36,12 +43,14 @@ def timetable():
             job["datetime"] = dt.replace(tzinfo=timezone)
             unsorted_jobs.append(job)
 
+    # sort
     jobs = sorted(unsorted_jobs, key=lambda d: d["datetime"])
 
     return flask.render_template(
         "timetable.pug",
         title=os.getenv("TIMETABLE_TITLE", "Cronjobs"),
         timezones=get_timezones(),
+        indexes=indexes,
         jobs=jobs,
     )
 
@@ -101,12 +110,48 @@ def render_markdown(s: str) -> str | None:
 
 
 def get_tasks():
-    global __tasks
+    global __tasks, __indexes
     if __tasks:
-        return __tasks
+        return __tasks, __indexes
 
+    # get tasks
     tasks = cron_times.tasks.load_tasks(TASK_DIR)
+
+    # indexing
+    def gen_index():
+        return f"index-{uuid.uuid4()}"
+
+    indexes: dict[tuple[int, str], str] = {
+        # key fmt in (int, str)
+        #               \    \-- name
+        #                \------ sort key
+    }
+    for task in tasks:
+        # per task index
+        task_name: str = task["name"]
+        task_index = gen_index()
+        indexes[0, task_name.casefold()] = "Task", task_name, task_index
+
+        # storage
+        task["indexes"] = {task_index}
+
+        # per label index
+        for label in task["labels"]:
+            label_key = 1, label.casefold()
+            if label_key in indexes:
+                _, _, label_index = indexes[label_key]
+            else:
+                label_index = gen_index()
+                indexes[label_key] = "Label", label, label_index
+            task["indexes"].add(label_index)
+
+    sorted_indexes = {}
+    for key in sorted(indexes.keys()):
+        category, name, index = indexes[key]
+        sorted_indexes[f"{category}: {name}"] = index
 
     if not app.debug:  # always reload in debug
         __tasks = tasks
-    return tasks
+        __indexes = sorted_indexes
+
+    return tasks, sorted_indexes
