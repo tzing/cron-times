@@ -1,5 +1,7 @@
 # Timetable for cronjobs
 
+[![PyPI version](https://img.shields.io/pypi/v/cron-times)](https://pypi.org/project/cron-times/)
+
 Show schdueled jobs in a more readable way.
 
 ![screenshot](./screenshot.png)
@@ -16,7 +18,7 @@ Show schdueled jobs in a more readable way.
 1. Install
 
    ```bash
-   pip install git+https://github.com/tzing/cron-times.git
+   pip install cron-times
    ```
 
 2. Create job definition files
