@@ -23,7 +23,7 @@ Show schdueled jobs in a more readable way.
 
 2. Create job definition files
 
-   Job definition are YAML files placed under `jobs/` folder in current working directory.
+   Job definition are YAML files placed under `tasks/` folder in current working directory.
 
    An example job:
 
