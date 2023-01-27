@@ -17,9 +17,10 @@ httpx = {version = "^0.23.3", optional = true}
 markdown2 = "^2.4.6"
 pypugjs = "^5.9.12"
 ruamel-yaml = "^0.17.21"
+tzlocal = {version = "^4.2", optional = true}
 
 [tool.poetry.extras]
-cli = ["click", "colorlog", "httpx"]
+cli = ["click", "colorlog", "httpx", "tzlocal"]
 
 [tool.poetry.scripts]
 "cron-times" = "cron_times.__main__:cli"
