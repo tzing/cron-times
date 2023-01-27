@@ -63,7 +63,10 @@ def get_tasks():
     "--overwrite", is_flag=True, help="Overwrite the output file when it exists."
 )
 def crontab(output: Path, user: str, label: list, overwrite: bool):
-    """Read crontab and output to file."""
+    """Read crontab and output to file.
+
+    The file would be completely overwritten when `--overwrite` is given.
+    """
     from cron_times.providers.crontab import get_tasks
 
     setup_logging()
@@ -135,7 +138,10 @@ def dbt(
     update_field: bool,
     keep_untracked: bool,
 ):
-    """Read tasks from dbt could and update to file."""
+    """Read tasks from dbt cloud and update to file.
+
+    This command update the selected fields and keep the rest data and comments
+    upchanged."""
     from cron_times.providers.dbt import get_tasks
 
     setup_logging()
