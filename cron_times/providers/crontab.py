@@ -9,7 +9,7 @@ import tzlocal
 logger = logging.getLogger(__name__)
 
 
-def get_tasks(user: Optional[str] = None):
+def get_tasks(user: Optional[str], labels: list[str]):
     logger.info("Read %s's crontab", user or "(current user)")
 
     # read
@@ -25,6 +25,9 @@ def get_tasks(user: Optional[str] = None):
     timezone = tzlocal.get_localzone_name()
     logger.info("Get timezone: %s", timezone)
 
+    # labels
+    labels = list(labels)
+
     # parse
     for line in result.stdout.splitlines():
         sline = line.strip()
@@ -37,6 +40,7 @@ def get_tasks(user: Optional[str] = None):
             "schedule": schedule,
             "timezone": timezone,
             "description": DESC_TEMPLATE.format(cmd=cmd),
+            "labels": labels,
         }
 
 

@@ -55,14 +55,21 @@ def get_tasks():
     help="Specify the username whose crontab to read.",
 )
 @click.option(
+    "-l",
+    "--label",
+    multiple=True,
+    help="Label(s) to put on these tasks. "
+    "This option could be used for multiple times.",
+)
+@click.option(
     "--overwrite", is_flag=True, help="Overwrite the output file when it exists."
 )
-def crontab(output: Path, user: str, overwrite: bool):
+def crontab(output: Path, user: str, label: list, overwrite: bool):
     """Read crontab and output to file."""
     from cron_times.providers.crontab import get_tasks
 
     setup_logging()
-    tasks = get_tasks(user=user)
+    tasks = get_tasks(user=user, labels=label)
     dump(output, overwrite, tasks)
 
 
