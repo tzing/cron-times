@@ -9,19 +9,19 @@ logger = logging.getLogger(__name__)
 def get_tasks(
     account_id: int,
     token: str,
-    project_ids: list[int] = None,
-    environment_ids: list[int] = None,
-    default_labels: list[str] = None,
+    wanted_project_ids: list[int] = None,
+    wanted_environment_ids: list[int] = None,
+    labels: list[str] = None,
 ):
-    project_ids = set(project_ids or [])
-    environment_ids = set(environment_ids or [])
-    default_labels = tuple(default_labels or [])
+    wanted_project_ids = set(wanted_project_ids or [])
+    wanted_environment_ids = set(wanted_environment_ids or [])
+    labels = tuple(labels or [])
 
     logger.info(
         "Read dbt cloud tasks from account %d; filtering- project %s, environment %s",
         account_id,
-        sorted(project_ids),
-        sorted(environment_ids),
+        sorted(wanted_project_ids),
+        sorted(wanted_environment_ids),
     )
 
     # list jobs
@@ -42,37 +42,45 @@ def get_tasks(
 
     # build task
     for task in data:
+        task_id = task["id"]
+
         # filter: only return selected project id and environment ids
-        if project_ids and task["project_id"] not in project_ids:
+        project_id = task["project_id"]
+        if wanted_project_ids and project_id not in wanted_project_ids:
             logger.info(
                 "Skip dbt#%d (%s): not selected project (%d)",
-                task["id"],
+                task_id,
                 task["name"],
-                task["project_id"],
+                project_id,
             )
             continue
-        if environment_ids and task["environment_id"] not in environment_ids:
+
+        environment_id = task["environment_id"]
+        if wanted_environment_ids and environment_id not in wanted_environment_ids:
             logger.info(
                 "Skip dbt#%d (%s): not selected environment (%d)",
-                task["id"],
+                task_id,
                 task["name"],
-                task["environment_id"],
+                environment_id,
             )
             continue
 
         # filter: exclude jobs without schedule trigger
         if not task["triggers"]["schedule"]:
-            logger.info(
-                "Skip dbt#%d (%s): no schedule trigger", task["id"], task["name"]
-            )
+            logger.info("Skip dbt#%d (%s): no schedule trigger", task_id, task["name"])
             continue
 
         yield {
             "name": task["name"],
-            "_id": task["id"],
+            "_id": task_id,
             "schedule": task["schedule"]["cron"],
-            "labels": default_labels,
+            "labels": labels,
             "description": tmpl.render(task).strip(),
+            "metadata": {
+                "project": project_id,
+                "environment": environment_id,
+                "url": f"https://cloud.getdbt.com/deploy/{account_id}/projects/{project_id}/jobs/{task_id}",
+            },
         }
 
 
