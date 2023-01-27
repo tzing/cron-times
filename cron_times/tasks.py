@@ -5,7 +5,7 @@ import zoneinfo
 from pathlib import Path
 
 import croniter
-import yaml
+import ruamel.yaml
 
 if typing.TYPE_CHECKING:
     import os
@@ -38,7 +38,8 @@ def load_file(filepath: "os.PathLike") -> list[dict[str, typing.Any]]:
     """Read task file."""
     # load file
     with open(filepath, "rb") as fp:
-        tasks = yaml.safe_load(fp)
+        yaml = ruamel.yaml.YAML()
+        tasks = yaml.load(fp)
 
     if not isinstance(tasks, list):
         logger.error("Task file %s is not a list.", filepath)

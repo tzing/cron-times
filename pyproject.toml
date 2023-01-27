@@ -9,13 +9,13 @@ packages = [{include = "cron_times"}]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-flask = "^2.2.2"
-pypugjs = "^5.9.12"
-markdown2 = "^2.4.6"
-croniter = "^1.3.8"
-pyyaml = "^6.0"
 click = {version = "^8.1.3", optional = true}
+croniter = "^1.3.8"
+flask = "^2.2.2"
 httpx = {version = "^0.23.3", optional = true}
+markdown2 = "^2.4.6"
+pypugjs = "^5.9.12"
+ruamel-yaml = "^0.17.21"
 
 [tool.poetry.extras]
 cli = ["click", "httpx"]
