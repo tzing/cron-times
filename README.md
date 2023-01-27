@@ -18,17 +18,21 @@ Show schdueled jobs in a more readable way.
 1. Install
 
    ```bash
+   # basic
    pip install cron-times
+
+   # with extra features
+   pip install 'cron-times[cli]'
    ```
 
-2. Create job definition files
+2. Create task definition files
 
-   Job definition are YAML files placed under `tasks/` folder in current working directory.
+   Task definition are YAML files placed under `tasks/` folder in current working directory.
 
-   An example job:
+   An example task:
 
    ```yaml
-   - name: Job name
+   - name: task name
      schedule: "0 10 * * *"
      timezone: Asia/Taipei  # tzdata format; Would use UTC if not provided
      description: In the description, you *can* use `markdown`
@@ -38,10 +42,42 @@ Show schdueled jobs in a more readable way.
    ```
 
    All `*.yaml` files would be loaded on initialization time.
-   We could build some code to pull the defines from other places before flask started.
+   We could use scripts to pull the defines from other places before flask started.
 
-4. Run the app
+3. Run the app for testing
 
    ```bash
    flask --app cron_times run
    ```
+
+### Built-in providers
+
+This tool comes with few builtin providers. The providers read cronjobs from the following places and build into task definition file:
+
+| source    | description              |
+| --------- | ------------------------ |
+| `crontab` | crontab on local machine |
+
+To use the provider, you MUST install `cron-times` with `[cli]` option.
+
+```bash
+cron-times get-tasks <source> --help
+```
+
+We could run these providers before starting the app to refresh the definition files.
+
+### Deploy
+
+[Flask suggests to use a WSGI server for production](https://flask.palletsprojects.com/en/2.2.x/deploying/).
+You can run the WSGI server app and call the module `cron_times:app` for such usage.
+
+Take [gunicorn](https://gunicorn.org/) as an example:
+
+```bash
+gunicorn --bind 0.0.0.0:8000 --workers 2 cron_times:app
+```
+
+> **Note**
+>
+> This app does not reload task definition after it started.
+> You should restart the app in case task definition is changed.
