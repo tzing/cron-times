@@ -54,9 +54,8 @@ Show schdueled jobs in a more readable way.
 
 This tool comes with few builtin providers. The providers read cronjobs from the following places and build into task definition file:
 
-| source    | description              |
-| --------- | ------------------------ |
-| `crontab` | crontab on local machine |
+* `crontab`: Read crontab on local machine
+* `dbt`: Query scheduled jobs from [dbt cloud](https://www.getdbt.com/product/what-is-dbt/). API triggered and manually triggered jobs are discarded.
 
 To use the provider, you MUST install `cron-times` with `[cli]` option.
 
