@@ -2,6 +2,8 @@ from pathlib import Path
 
 import click
 
+from cron_times.utils import dump, setup_logging
+
 
 @click.group()
 def cli():
@@ -41,31 +43,27 @@ def get_tasks():
 
 @get_tasks.command()
 @click.option(
-    "--file",
+    "-o",
+    "--output",
     type=click.Path(exists=False, file_okay=True, dir_okay=False, path_type=Path),
     show_default=True,
-    default="tasks/dbt.yaml",
+    default="tasks/crontab.yaml",
     help="File to output or update.",
 )
-@click.option("--account-id", required=True, type=click.INT, help="Account id")
 @click.option(
-    "--token",
-    required=True,
-    envvar="DBT_TOKEN",
-    help="API token. Could be provided from env var `DBT_TOKEN`.",
+    "--user",
+    help="Specify the username whose crontab to read.",
 )
 @click.option(
-    "-p",
-    "--project-id",
-    type=click.INT,
-    help="Only select task(s) in this project. "
-    "You can set this option multiple times. All tasks would be included when on set",
+    "--overwrite", is_flag=True, help="Overwrite the output file when it exists."
 )
-def dbt(account_id: int, token: str):
-    """Get cronjobs from dbt."""
-    import cron_times.providers.dbt
+def crontab(output: Path, user: str, overwrite: bool):
+    """Read crontab and output to file."""
+    from cron_times.providers.crontab import get_tasks
 
-    tasks = cron_times.providers.dbt.get_tasks(account_id=account_id, token=token)
+    setup_logging()
+    tasks = get_tasks(user=user)
+    dump(output, overwrite, tasks)
 
 
 if __name__ == "__main__":
