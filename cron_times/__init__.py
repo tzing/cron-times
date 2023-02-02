@@ -48,7 +48,7 @@ def timetable():
 
     return flask.render_template(
         "timetable.pug",
-        title=os.getenv("TIMETABLE_TITLE", "Cronjobs"),
+        title=os.getenv("CRONTIMES_PAGE_TITLE", "Cronjobs"),
         timezones=get_timezones(),
         indexes=indexes,
         jobs=jobs,
