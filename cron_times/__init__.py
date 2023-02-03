@@ -4,6 +4,7 @@ import logging
 import os
 import uuid
 import zoneinfo
+from http import HTTPStatus
 
 import croniter
 import flask
@@ -52,6 +53,17 @@ def timetable():
         timezones=get_timezones(),
         indexes=indexes,
         jobs=jobs,
+    )
+
+
+@app.route("/healthz")
+def health_check():
+    tasks = cron_times.tasks.load_tasks(TASK_DIR)
+    data = flask.render_template("clock.txt", n_task=len(tasks))
+    return flask.Response(
+        status=HTTPStatus.OK,
+        response=data,
+        content_type="text/plain; charset=utf-8",
     )
 
 
