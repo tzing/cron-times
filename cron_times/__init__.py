@@ -8,7 +8,7 @@ from http import HTTPStatus
 
 import croniter
 import flask
-import markdown2
+import mistune
 
 import cron_times.tasks
 
@@ -109,16 +109,10 @@ def get_timezones() -> list[dict]:
 def render_markdown(s: str) -> str | None:
     if not s:
         return None
-    return markdown2.markdown(
-        s,
-        safe_mode=True,
-        extras=[
-            "code-friendly",
-            "fenced-code-blocks",
-            "strike",
-            "tables",
-        ],
+    md = mistune.create_markdown(
+        plugins=["strikethrough", "footnotes", "table", "url", "task_lists"]
     )
+    return md(s)
 
 
 def get_tasks():
