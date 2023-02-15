@@ -145,6 +145,8 @@ html(lang='en')
               allowClear: true,
               width: '22rem',
             })
+            .val(null)
+            .trigger('change')
             .on('change', (e) => { crontimes.filterJobs(e.target.value); })
             ;
 
