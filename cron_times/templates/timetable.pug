@@ -29,10 +29,6 @@ html(lang='en')
         display: none;
       }
 
-      #filter {
-        max-width: 22rem;
-      }
-
     title {{ title }}
 
   body
@@ -51,7 +47,6 @@ html(lang='en')
             .col-md-auto.col-sm-12
               //- dropdown: filter
               select#filter.form-select
-                option(value='' selected) All
                 {% for name, index in indexes.items() %}
                 option(value='{{ index }}') {{ name }}
                 {%- endfor %}
@@ -143,9 +138,15 @@ html(lang='en')
             ;
 
           // callback for filter dropdown
-          document.getElementById('filter').addEventListener('change', (e) => {
-            crontimes.filterJobs(e.target.value);
-          })
+          $('#filter')
+            .select2({
+              theme: "bootstrap-5",
+              placeholder: "Filter jobs",
+              allowClear: true,
+              width: '22rem',
+            })
+            .on('change', (e) => { crontimes.filterJobs(e.target.value); })
+            ;
 
           // callback for 'now' button
           document.getElementById('scrollToNow')
