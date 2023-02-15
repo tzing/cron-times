@@ -460,41 +460,6 @@ dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
-name = "pybind11"
-version = "2.10.3"
-description = "Seamless operability between C++11 and Python"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "pybind11-2.10.3-py3-none-any.whl", hash = "sha256:123e303f39ad5de97ddfa4f1f473cb85881a0a94ee5714eb3c37e2405371fc12"},
-    {file = "pybind11-2.10.3.tar.gz", hash = "sha256:08cfe6d4f73746447cc85a400c8169a91608b8a00c5feecd8ff251a70565d12f"},
-]
-
-[package.extras]
-global = ["pybind11-global (==2.10.3)"]
-
-[[package]]
-name = "pylcs"
-version = "0.0.8"
-description = "super fast cpp implementation of longest common subsequence"
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "pylcs-0.0.8-cp310-cp310-win_amd64.whl", hash = "sha256:cd121d35f7364d88e7c18c272528fea2d84c8bc06ec3d42a4511787c0a990de1"},
-    {file = "pylcs-0.0.8-cp35-cp35m-win_amd64.whl", hash = "sha256:06eb74f7e4349c418902834642191abbfc70d296a204b51304c114fe4b9b5a38"},
-    {file = "pylcs-0.0.8-cp36-cp36m-win_amd64.whl", hash = "sha256:85be53b08fdc0df465ab63869ae8f21e0e5bdb912dd1de633885d64f4159794a"},
-    {file = "pylcs-0.0.8-cp37-cp37m-win_amd64.whl", hash = "sha256:ba4e69fa2fd6e970c118d5b2da3548e151292944b9d6a842f9262c42bd0ab1c2"},
-    {file = "pylcs-0.0.8-cp38-cp38-win_amd64.whl", hash = "sha256:08f3de7b3b63b2fef74b74db5f56519c9080b40512580ebc96d109714ec77f00"},
-    {file = "pylcs-0.0.8-cp39-cp39-win_amd64.whl", hash = "sha256:58f56925ff2cff37ed09fed3dc4519885e9f2007e9b9f5ad32dbc11964acc410"},
-    {file = "pylcs-0.0.8.tar.gz", hash = "sha256:afc619ebff8be8678c6675396c36fc232bfb15e32675a9f3e1d6a5cdc36c4223"},
-]
-
-[package.dependencies]
-pybind11 = ">=2.2"
-
-[[package]]
 name = "pypugjs"
 version = "5.9.12"
 description = "PugJS syntax template adapter for Django, Jinja2, Mako and Tornado templates"
@@ -737,4 +702,4 @@ cli = ["click", "colorlog", "httpx", "tzlocal"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "bf8a4a533e9851bcaebb26124d20c47111000d24eb01365fe7cac26da93cc7ca"
+content-hash = "219c9211630e3227f3a864e45a2223fbd78c7e7361ad28b53383d2cc2d3022dc"

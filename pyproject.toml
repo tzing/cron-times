@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cron-times"
-version = "0.7.0"
+version = "0.7.1"
 description = "Show schdueled jobs in a more readable way"
 authors = ["tzing <tzingshih@gmail.com>"]
 license = "Apache-2.0"
@@ -12,7 +12,6 @@ python = "^3.10"
 croniter = "^1.3.8"
 flask = "^2.2.2"
 mistune = "^2.0.5"
-pylcs = "^0.0.8"
 pypugjs = "^5.9.12"
 ruamel-yaml = "^0.17.21"
 
