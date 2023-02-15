@@ -34,7 +34,7 @@ Show schdueled jobs in a more readable way.
    ```yaml
    - name: task name
      schedule: "0 10 * * *"
-     timezone: Asia/Taipei  # tzdata format; Would use UTC if not provided
+     timezone: Asia/Taipei  # IANA tz database format
      description: In the description, you *can* use `markdown`
      labels:
        - sample-label

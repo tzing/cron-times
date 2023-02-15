@@ -7,6 +7,8 @@ html(lang='en')
 
     //- Bootstrap CSS
     link(href='https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css', rel='stylesheet', integrity='sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC', crossorigin='anonymous')
+    link(rel='stylesheet', href='{{ url_for("static", filename="css/select2.min.css") }}')
+    link(rel='stylesheet', href='{{ url_for("static", filename="css/select2-bootstrap-5-theme.min.css") }}')
 
     //- Customized CSS
     style.
@@ -29,10 +31,6 @@ html(lang='en')
 
       #filter {
         max-width: 22rem;
-      }
-
-      #timezone {
-        max-width: 14rem;
       }
 
     title {{ title }}
@@ -62,7 +60,7 @@ html(lang='en')
               //- dropdown: timezone
               select#timezone.form-select
                 {% for tz in timezones %}
-                option(value='{{ tz.name }}') ({{ tz.offset_display }}) {{ tz.short_name }}
+                option(value='{{ tz.db }}') ({{ tz.offset | to_readable_offset }}) {{ tz.region }}
                 {%- endfor %}
 
             .col-md-auto.col-sm-12.d-grid.gap-2
@@ -126,6 +124,10 @@ html(lang='en')
       dayjs.extend(window.dayjs_plugin_isTomorrow);
       dayjs.extend(window.dayjs_plugin_isYesterday);
 
+    //- Vendored
+    script(src='{{ url_for("static", filename="js/jquery-3.6.3.slim.min.js") }}')
+    script(src='{{ url_for("static", filename="js/select2.min.js") }}')
+
     //- Custom
     script(src='{{ url_for("static", filename="crontimes.js") }}')
     script.
@@ -133,11 +135,12 @@ html(lang='en')
 
       (function () {
           // setup time zone dropdown
-          let timeZoneSelectDom = document.getElementById('timezone');
-          timeZoneSelectDom.value = crontimes.getTimezone();
-          timeZoneSelectDom.addEventListener('change', (e) => {
-            crontimes.setTimeZone(e.target.value);
-          });
+          $('#timezone')
+            .select2({theme: "bootstrap-5"})
+            .val(crontimes.getTimezone())
+            .trigger('change')
+            .on('change', (e) => { crontimes.setTimeZone(e.target.value); })
+            ;
 
           // callback for filter dropdown
           document.getElementById('filter').addEventListener('change', (e) => {

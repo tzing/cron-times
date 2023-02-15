@@ -10,12 +10,16 @@ import croniter
 import flask
 import mistune
 
+import cron_times.base
 import cron_times.tasks
+import cron_times.timezone
 
 TASK_DIR = os.getenv("CRONTIMES_TASK_DIR", "tasks")
 
 app = flask.Flask(__name__)
 app.jinja_env.add_extension("pypugjs.ext.jinja.PyPugJSExtension")
+
+app.register_blueprint(cron_times.base.api, url_prefix="/api")
 
 __tasks = None
 __indexes = None
@@ -50,7 +54,7 @@ def timetable():
     return flask.render_template(
         "timetable.pug",
         title=os.getenv("CRONTIMES_PAGE_TITLE", "Cronjobs"),
-        timezones=get_timezones(),
+        timezones=cron_times.timezone.list_timezones(),
         indexes=indexes,
         jobs=jobs,
     )
@@ -65,44 +69,6 @@ def health_check():
         response=data,
         content_type="text/plain; charset=utf-8",
     )
-
-
-@functools.cache
-def get_timezones() -> list[dict]:
-    now = datetime.datetime.utcnow()
-
-    parsed_timezones = {}
-    for name in zoneinfo.available_timezones():
-        # short name
-        *_, short_name = name.split("/")
-        short_name = short_name.replace("_", " ")
-
-        if short_name in parsed_timezones:
-            continue
-
-        # offset
-        zone = zoneinfo.ZoneInfo(name)
-        delta = zone.utcoffset(now)  # this api take care of daylight saving
-        offset = delta.days * 86400 + delta.seconds
-        hh = offset // 3600
-        mm = (offset - hh * 3600) // 60
-
-        if name.startswith("Etc/GMT"):
-            continue  # workaround: don't know why GMT offsets are negative
-
-        parsed_timezones[short_name] = {
-            "name": name,
-            "short_name": short_name,
-            "offset": offset,
-            "offset_display": f"{hh:+03d}:{mm:02d}",
-        }
-
-    output = sorted(
-        parsed_timezones.values(),
-        key=lambda tz: (tz["offset"], tz["short_name"]),
-    )
-
-    return output
 
 
 @app.template_filter("markdown")
