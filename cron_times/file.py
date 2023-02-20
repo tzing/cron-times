@@ -65,7 +65,8 @@ def load_task_definition_file(filepath: "os.PathLike") -> list[dict[str, typing.
     # parse
     output = []
     for item in tasks:
-        output.append(parse_task(item))
+        if parsed := parse_task(item):
+            output.append(parsed)
 
     return output
 
