@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cron-times"
-version = "0.7.2"
+version = "0.8.0"
 description = "Show schdueled jobs in a more readable way"
 authors = ["tzing <tzingshih@gmail.com>"]
 license = "Apache-2.0"
