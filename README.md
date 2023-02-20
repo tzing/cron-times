@@ -34,15 +34,19 @@ Show schdueled jobs in a more readable way.
    ```yaml
    - name: task name
      schedule: "0 10 * * *"
-     timezone: Asia/Taipei  # IANA tz database format
+     timezone: Asia/Taipei  # (Optional) IANA tz database; It uses UTC when not specify
      description: In the description, you *can* use `markdown`
      labels:
-       - sample-label
-       - another-label
+       - basic label
+       - text: colored label
+         color: yellow
    ```
 
    All `*.yaml` files would be loaded on initialization time.
    We could use scripts to pull the defines from other places before flask started.
+
+   Following colors are available for labels:
+   `red`, `orange`, `yellow`, `green`, `teal`, `cyan`, `blue`, `purple`, `pink`, `black` and `white`
 
 3. Run the app for testing
 

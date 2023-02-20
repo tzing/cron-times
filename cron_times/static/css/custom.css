@@ -1,0 +1,64 @@
+.time-container {
+    position: relative !important;
+    min-height: 3rem;
+}
+
+.time {
+    position: absolute;
+    transform: translate(-50%, -50%) !important;
+    left: 50% !important;
+    top: 50% !important;
+    padding-top: 0.3rem;
+}
+
+.row.hide {
+    display: none;
+}
+
+.badge-blue {
+    background-color: #0d6efd !important;
+}
+
+.badge-purple {
+    background-color: #6f42c1 !important;
+}
+
+.badge-pink {
+    background-color: #d63384 !important;
+}
+
+.badge-red {
+    background-color: #dc3545 !important;
+}
+
+.badge-orange {
+    background-color: #fd7e14 !important;
+}
+
+.badge-yellow {
+    color: #212529 !important;
+    background-color: #ffc107 !important;
+}
+
+.badge-green {
+    background-color: #198754 !important;
+}
+
+.badge-teal {
+    color: #212529 !important;
+    background-color: #20c997 !important;
+}
+
+.badge-cyan {
+    color: #212529 !important;
+    background-color: #0dcaf0 !important;
+}
+
+.badge-white {
+    color: #212529 !important;
+    background-color: #f8f9fa !important;
+}
+
+.badge-black {
+    background-color: #212529 !important;
+}

@@ -1,33 +1,13 @@
 doctype html
 html(lang='en')
   head
-    //- Required meta tags
     meta(charset='utf-8')
     meta(name='viewport', content='width=device-width, initial-scale=1')
 
-    //- Bootstrap CSS
     link(rel='stylesheet', href='{{ url_for("static", filename="css/bootstrap.min.css") }}')
     link(rel='stylesheet', href='{{ url_for("static", filename="css/select2.min.css") }}')
     link(rel='stylesheet', href='{{ url_for("static", filename="css/select2-bootstrap-5-theme.min.css") }}')
-
-    //- Customized CSS
-    style.
-      .time-container {
-        position: relative !important;
-        min-height: 3rem;
-      }
-
-      .time {
-        position: absolute;
-        transform: translate(-50%,-50%) !important;
-        left: 50% !important;
-        top: 50% !important;
-        padding-top: 0.3rem;
-      }
-
-      .row.hide {
-        display: none;
-      }
+    link(rel='stylesheet', href='{{ url_for("static", filename="css/custom.css") }}')
 
     title {{ title }}
 
@@ -47,7 +27,7 @@ html(lang='en')
             .col-md-auto.col-sm-12
               //- dropdown: filter
               select#filter.form-select
-                {% for name, index in indexes.items() %}
+                {% for name, index in indexes %}
                 option(value='{{ index }}') {{ name }}
                 {%- endfor %}
 
@@ -85,14 +65,19 @@ html(lang='en')
               .card-body
                 h5.card-title {{ job.name | safe }}
                 {%- if job.description %}
-                p.card-text {{ job.description | markdown }}
+                p.card-text {{ job.description | safe }}
                 {%- endif %}
                 p.card-text.text-muted
                   {%- if job.labels %}
                   small.
                     Labels:
-                    {% for label in job.labels %}
-                    <span class='badge bg-secondary me-1'>{{ label | safe }}</span>
+                    {%- for label in job.labels %}
+                    {%- if label.color %}
+                    {%- set label_class = "badge-" ~ label.color %}
+                    {%- else %}
+                    {%- set label_class = "" %}
+                    {%- endif %}
+                    <span class='badge bg-secondary me-1 {{ label_class }}'>{{ label.text | safe }}</span>
                     {%- endfor %}
                   {%- endif %}
                   br

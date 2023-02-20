@@ -1,5 +1,5 @@
 import datetime
-import functools
+import enum
 import logging
 import os
 import uuid
@@ -8,23 +8,18 @@ from http import HTTPStatus
 
 import croniter
 import flask
-import mistune
 
 import cron_times.base
-import cron_times.tasks
+import cron_times.file
 import cron_times.timezone
-
-TASK_DIR = os.getenv("CRONTIMES_TASK_DIR", "tasks")
 
 app = flask.Flask(__name__)
 app.jinja_env.add_extension("pypugjs.ext.jinja.PyPugJSExtension")
 
 app.register_blueprint(cron_times.base.api, url_prefix="/api")
 
-__tasks = None
-__indexes = None
-
 logger = logging.getLogger(__name__)
+__tasks = None
 
 
 @app.route("/")
@@ -62,8 +57,7 @@ def timetable():
 
 @app.route("/healthz")
 def health_check():
-    tasks = cron_times.tasks.load_tasks(TASK_DIR)
-    data = flask.render_template("clock.txt", n_task=len(tasks))
+    data = flask.render_template("clock.txt")
     return flask.Response(
         status=HTTPStatus.OK,
         response=data,
@@ -71,59 +65,53 @@ def health_check():
     )
 
 
-@app.template_filter("markdown")
-def render_markdown(s: str) -> str | None:
-    if not s:
-        return None
-    md = mistune.create_markdown(
-        plugins=["strikethrough", "footnotes", "table", "url", "task_lists"]
-    )
-    return md(s)
-
-
 def get_tasks():
-    global __tasks, __indexes
-    if __tasks:
-        return __tasks, __indexes
+    """Cache `get_tasks` for production."""
+    global __tasks
+    if not app.debug and __tasks:
+        return __tasks
+    __tasks = _get_tasks()
+    return __tasks
 
-    # get tasks
-    tasks = cron_times.tasks.load_tasks(TASK_DIR)
 
-    # indexing
-    def gen_index():
-        return f"index-{uuid.uuid4()}"
+def _get_tasks():
+    """Load tasks and generate indexes for filter."""
+    # load
+    TASK_DIR = os.getenv("CRONTIMES_TASK_DIR", "tasks")
+    tasks = cron_times.file.load_all_tasks_from_file(TASK_DIR)
 
-    indexes: dict[tuple[int, str], str] = {
-        # key fmt in (int, str)
-        #               \    \-- name
-        #                \------ sort key
-    }
+    # generate index for filter
+    # dict[type, key] = (internal id, name)
+    global_indexes: dict[tuple[IndexType, str], tuple[str, str]] = {}
+
+    def set_index(type_: IndexType, key: str, name: str) -> str:
+        index, _ = global_indexes.setdefault(
+            (type_, key), (f"index-{uuid.uuid4()}", name)
+        )
+        return index
+
     for task in tasks:
-        # per task index
-        task_name: str = task["name"]
-        task_index = gen_index()
-        indexes[0, task_name.casefold()] = "Task", task_name, task_index
+        # stores all index id that is related to this task
+        task["indexes"] = task_indexes = set()
 
-        # storage
-        task["indexes"] = {task_index}
+        # set per task index
+        index = set_index(IndexType.Task, task["key"], task["name"])
+        task_indexes.add(index)
 
         # per label index
         for label in task["labels"]:
-            label_key = 1, label.casefold()
-            if label_key in indexes:
-                _, _, label_index = indexes[label_key]
-            else:
-                label_index = gen_index()
-                indexes[label_key] = "Label", label, label_index
-            task["indexes"].add(label_index)
+            index = set_index(IndexType.Label, label["key"], label["text"])
+            task_indexes.add(index)
 
-    sorted_indexes = {}
-    for key in sorted(indexes.keys()):
-        category, name, index = indexes[key]
-        sorted_indexes[f"{category}: {name}"] = index
+    # sort indexes for prettier display
+    output_filters = []
+    for type_, key in sorted(global_indexes.keys()):
+        index, name = global_indexes[type_, key]
+        output_filters.append((f"{type_.name}: {name}", index))
 
-    if not app.debug:  # always reload in debug
-        __tasks = tasks
-        __indexes = sorted_indexes
+    return tasks, output_filters
 
-    return tasks, sorted_indexes
+
+class IndexType(enum.IntEnum):
+    Task = enum.auto()
+    Label = enum.auto()
