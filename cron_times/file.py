@@ -45,6 +45,7 @@ def load_all_tasks_from_file(task_dir: "os.PathLike") -> list[dict[str, typing.A
     # read files
     output = []
     for filepath in files:
+        logger.debug("Reading %s", filepath)
         output.extend(load_task_definition_file(filepath))
 
     logger.info("Load %s schedules", len(output))
