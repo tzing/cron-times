@@ -1,0 +1,6 @@
+<button class="list-group-item list-group-item-action {{ 'active' if is_current else '' }} timezone-option" data-timezone="{{ name }}" hx-on="click: cronTimes.setTimeZoneCallback('{{ name }}');">
+    <div class="d-flex justify-content-between">
+        <div>{{ name | default('<timezone>') }}</div>
+        <span class="badge text-bg-secondary rounded-pill">{{ offset | default('+xx:xx') }}</span>
+    </div>
+</button>

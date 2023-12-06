@@ -1,0 +1,32 @@
+<nav class="navbar sticky-top bg-primary navbar-expand-md" data-bs-theme="dark">
+    <div class="container">
+        <span class="navbar-brand mb-0 h1">{{ config.SITE_NAME | safe }}</span>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarToggler">
+            <div class="container-fluid d-flex flex-md-row flex-column">
+                <form class="mx-auto">
+                    <input class="form-control bg-primary-subtle" type="search" placeholder="Search" aria-label="Search" hx-trigger="load, keyup changed delay:400ms, timezone-changed" hx-get="/plans" hx-vals="js:{currentTimeZone: cronTimes.getTimeZone()}" hx-include="this" hx-target="#plans" id="event-query" list="list-query-keywords" name="query" {% if request.args.get('query') %}value="{{ request.args.get('query') }}" {% endif %}>
+                    <datalist id="list-query-keywords" hx-trigger="load" hx-get="/query-options">
+                    </datalist>
+                </form>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="modal" data-bs-target="#timezone-modal">
+                            <i class="bi bi-clock"></i>
+                            <span id="timezoneText">&lt;timezone&gt;</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="color-theme-switch">
+                            &lt;color theme&gt;
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>

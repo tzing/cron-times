@@ -1,0 +1,112 @@
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/htmx-1.9.8.min.js') }}"></script>
+
+<script>
+    'use strict';
+
+    const cronTimes = (function () {
+        const STORAGE_KEY_COLOR_THEME = 'colorTheme';
+        const STORAGE_KEY_TIME_ZONE = 'timeZone';
+
+        /**
+         * Get color theme from local storage
+         *
+         * @returns {string}
+         */
+        function getColorTheme() {
+            return localStorage.getItem(STORAGE_KEY_COLOR_THEME) || 'light';
+        }
+
+        /**
+         * Set color theme to local storage and update DOM
+         *
+         * @param {string} colorTheme
+         */
+        function setColorTheme(colorTheme) {
+            console.log(`use ${colorTheme} theme`)
+            localStorage.setItem(STORAGE_KEY_COLOR_THEME, colorTheme);
+
+            document.documentElement.setAttribute('data-bs-theme', colorTheme);
+
+            const colorThemeSwitch = document.getElementById('color-theme-switch');
+            if (colorTheme === 'light') {
+                colorThemeSwitch.innerHTML = '<i class="bi bi-moon-fill"></i>';
+            } else {
+                colorThemeSwitch.innerHTML = '<i class="bi bi-brightness-high-fill"></i>';
+            }
+        }
+
+        /**
+         * Get timezone from local storage or browser
+         *
+         * @returns {string}
+         */
+        function getTimeZone() {
+            return localStorage.getItem(STORAGE_KEY_TIME_ZONE)
+                || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }
+
+        /**
+         * Set timezone to local storage
+         *
+         * @param {string} timeZone
+         */
+        function setTimeZone(timeZone) {
+            console.log(`use ${timeZone} timezone`);
+            localStorage.setItem(STORAGE_KEY_TIME_ZONE, timeZone);
+            document.getElementById('timezoneText').innerHTML = timeZone;
+        }
+
+        /**
+         * Callback for timezone modal
+         */
+        function setTimeZoneCallback(timezone) {
+            setTimeZone(timezone);
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('timezone-modal'));
+            modal.hide();
+
+            htmx.trigger('#event-query', 'timezone-changed');
+        }
+
+        /**
+         * Scroll to 'now' card
+         */
+        function goToNow() {
+            const now = document.getElementById('plan-item-now');
+            const nowRect = now.getBoundingClientRect();
+            const nowTop = nowRect.top + window.pageYOffset - (window.innerHeight - nowRect.height) / 2;
+            window.scrollTo({ top: nowTop, behavior: 'smooth' });
+        }
+
+        /**
+         * Initialize
+         */
+        (function initialize() {
+            setColorTheme(getColorTheme());
+            setTimeZone(getTimeZone());
+        })();
+
+        return {
+            getColorTheme: getColorTheme,
+            setColorTheme: setColorTheme,
+            getTimeZone: getTimeZone,
+            setTimeZone: setTimeZone,
+            goToNow: goToNow,
+            setTimeZoneCallback: setTimeZoneCallback,
+        }
+    })();
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Color theme
+        const colorThemeSwitch = document.getElementById('color-theme-switch');
+        colorThemeSwitch.addEventListener('click', function () {
+            const colorTheme = cronTimes.getColorTheme();
+            cronTimes.setColorTheme(colorTheme === 'light' ? 'dark' : 'light');
+        });
+
+        // Timezone
+        const timeZoneDom = document.getElementById('timezoneText');
+        timeZoneDom.innerHTML = cronTimes.getTimeZone();
+    });
+</script>

@@ -1,86 +1,84 @@
-# Timetable for cronjobs
+# Cron-times
 
 [![PyPI version](https://img.shields.io/pypi/v/cron-times)](https://pypi.org/project/cron-times/)
 
-Show schdueled jobs in a more readable way.
+Cron-times is the timetable for your cronjobs. It shows you when your cronjobs will run, in a human readable view.
 
 ![screenshot](./screenshot.png)
 
-*features*
-
-* Easy configure - Setup job list in YAML format
+* Setup job list in YAML format
 * Timezone supported - Able to configure server timezone and show the time in local time
-* Quick filtering - Allow customized label and quick lookup
 
+## Install
+
+```bash
+pip install cron-times
+```
 
 ## Usage
 
-1. Install
-
-   ```bash
-   # basic
-   pip install cron-times
-
-   # with extra features
-   pip install 'cron-times[cli]'
-   ```
-
-2. Create task definition files
-
-   Task definition are YAML files placed under `tasks/` folder in current working directory.
-
-   An example task:
-
-   ```yaml
-   - name: task name
-     schedule: "0 10 * * *"
-     timezone: Asia/Taipei  # (Optional) IANA tz database; It uses UTC when not specify
-     description: In the description, you *can* use `markdown`
-     labels:
-       - basic label
-       - text: colored label
-         color: yellow
-   ```
-
-   All `*.yaml` files would be loaded on initialization time.
-   We could use scripts to pull the defines from other places before flask started.
-
-   Following colors are available for labels:
-   `red`, `orange`, `yellow`, `green`, `teal`, `cyan`, `blue`, `purple`, `pink`, `black` and `white`
-
-3. Run the app for testing
-
-   ```bash
-   flask --app cron_times run
-   ```
-
-### Built-in providers
-
-This tool comes with few builtin providers. The providers read cronjobs from the following places and build into task definition file:
-
-* `crontab`: Read crontab on local machine
-* `dbt`: Query scheduled jobs from [dbt cloud](https://www.getdbt.com/product/what-is-dbt/). API triggered and manually triggered jobs are discarded.
-
-To use the provider, you MUST install `cron-times` with `[cli]` option.
+Cron-times is an [Flask] application. You can run it with the following commands:
 
 ```bash
-cron-times get-tasks <source> --help
+flask --app cron_times init-db
+flask --app cron_times run
 ```
 
-We could run these providers before starting the app to refresh the definition files.
+The server will be running on http://localhost:5000
 
-### Deploy
+[Flask]: https://flask.palletsprojects.com/en/3.0.x/
 
-[Flask suggests to use a WSGI server for production](https://flask.palletsprojects.com/en/2.2.x/deploying/).
-You can run the WSGI server app and call the module `cron_times:app` for such usage.
+### Add job(s)
 
-Take [gunicorn](https://gunicorn.org/) as an example:
+There is no job listed by default.
+You can describe your cronjobs in YAML format:
+
+```yaml
+# IMPORTANT: The YAML file must start with `jobs:`
+jobs:
+
+  - # Job name
+    name: Sample task
+    # Cronjob schedule, in crontab format
+    schedule: "0 10/3 * * *"
+    # Optional timezone, default to UTC
+    timezone: Asia/Taipei
+    # Optional job description
+    description: In the description, you *can* use `markdown`
+    # Optional labels
+    labels:
+      - foo
+    # Optional metadata
+    # You can use this field to store any extra information
+    metadata:
+      extra metadata: can be anything
+    # Optional flag to indicate if the job is enabled
+    # If not set, it will be recognized as enabled
+    enabled: true
+    # Optional flag to turn off markdown rendering for description
+    use_markdown: true
+```
+
+After the YAML file is ready, you can import it with the following command:
 
 ```bash
-gunicorn --bind 0.0.0.0:8000 --workers 2 cron_times:app
+flask --app cron_times load-taskfile --group test /path/to/jobs.yaml
 ```
 
-> **Note**
->
-> This app does not reload task definition after it started.
-> You should restart the app in case task definition is changed.
+The `--group` option is used to assign group name to the jobs.
+This is an hidden information to be used on updating the jobs list and will not be shown on the web page.
+
+
+## Configuration
+
+It uses Flask's configuration system. Set the environment variable to the path of that file:
+
+```bash
+export CRON_TIMES_SETTINGS=/path/to/settings.cfg
+```
+
+You can set the following options:
+
+```cfg
+SITE_NAME="My cronjobs"
+```

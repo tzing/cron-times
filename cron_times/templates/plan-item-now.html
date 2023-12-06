@@ -1,0 +1,17 @@
+<div class="card mt-3 text-bg-secondary" id="plan-item-now">
+    <div class="row g-0">
+        <div class="col-sm-12 col-md-2 d-flex">
+            <div class="m-auto p-2">
+                <div class="h6 m-0">{{ time | naturalday }}</div>
+                <div class="h4">
+                    {{ time | datetime_format('%H:%M') }}
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-10">
+            <div class="card-body">
+                <h5 class="card-title my-2">Now</h5>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,21 @@
+<div class="modal fade" id="timezone-modal" tabindex="-1" aria-labelledby="timezoneModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-md-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="timezoneModalLabel">Time zones</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form class="p-3">
+                <input class="form-control" id="timezone-search" type="search" placeholder="Search" aria-label="Search" hx-trigger="intersect once, keyup changed delay:400ms" hx-get="/timezones" hx-vals="js:{currentTimeZone: cronTimes.getTimeZone(), query: document.getElementById('timezone-search').value}" hx-target="#timezones">
+            </form>
+            <div class="modal-body pt-0">
+                <div class="list-group list-group-flush" id="timezones">
+                    <!-- show timezones here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

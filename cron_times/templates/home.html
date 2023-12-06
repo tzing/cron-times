@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}">
+
+    <title>{{ config.SITE_NAME | safe }}</title>
+</head>
+
+<body>
+    {% include 'navbar.html' %}
+
+    <main class="container">
+        <div id="plans"></div>
+
+        <div class="my-3 p-4 text-muted text-center">
+            <small>Powered by <a class="text-reset" href="https://github.com/tzing/cron-times">cron-times</a>.</small>
+        </div>
+    </main>
+
+    <button type="button" class="btn btn-secondary fixed-bottom ms-auto mb-3 me-3 rounded-pill" id="btn-go-to-now" hx-on="click: cronTimes.goToNow();">
+        <i class="bi bi-clock-history"></i>
+        Go to now
+    </button>
+
+    {% include 'timezone-modal.html' %}
+    {% include 'scripts.html' %}
+</body>
+
+</html>

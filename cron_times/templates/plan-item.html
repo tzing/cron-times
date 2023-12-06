@@ -1,0 +1,63 @@
+<div class="card mt-3">
+    <div class="row g-0">
+        <div class="col-sm-12 col-md-2 d-flex">
+            <div class="m-auto p-2">
+                <div class="h6 text-muted m-0">{{ time | naturalday }}</div>
+                <div class="h4">
+                    {{ time | datetime_format('%H:%M') }}
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12 col-md-10">
+            <div class="card-body">
+                {# title #}
+                <h5 class="card-title mb-2">{{ name | default('<name>') }}</h5>
+
+                {# labels #}
+                {% if labels or not enabled %}
+                <div class="mb-2">
+                    {% if not enabled %}
+                    <div class="badge text-bg-warning">
+                        <i class="bi bi-pause"></i>
+                        Suspended
+                    </div>
+                    {% endif %}
+                    {% for label in labels %}
+                    <span class='badge bg-secondary'>{{ label }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {# description #}
+                {% if description %}
+                {{ description | safe }}
+                {% endif %}
+
+                {# metadata #}
+                <div class="text-muted mt-2" style="font-size: 0.9em;">
+                    <span data-bs-toggle="collapse" href="#metadata-{{ uuid }}" role="button" aria-expanded="false" aria-controls="metadata-{{ uuid }}">
+                        Metadata
+                        <i class="bi bi-arrow-right"></i>
+                    </span>
+                    <div class="collapse" id="metadata-{{ uuid }}">
+                        <dl class="row mt-2 mb-0">
+                            <dt class="col-sm-3">schedule</dt>
+                            <dd class="col-sm-9">
+                                <code>{{ schedule | default('? ? ? ? ?') }}</code>
+                                ({{ timezone }})
+                            </dd>
+
+                            <dt class="col-sm-3">run at</dt>
+                            <dd class="col-sm-9">{{ time | datetime_format('%Y-%m-%d %H:%M:%S %z') }} ({{ time | naturaltime }})</dd>
+
+                            {% for name, value in metadata.items() %}
+                            <dt class="col-sm-3">{{ name }}</dt>
+                            <dd class="col-sm-9">{{ value }}</dd>
+                            {% endfor %}
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
