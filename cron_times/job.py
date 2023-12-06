@@ -155,11 +155,11 @@ class TaskFile(pydantic.BaseModel):
     jobs: list[Job] = pydantic.Field(default_factory=list)
 
 
-def save_jobs(group_name: str | None, jobs: list[Job]) -> int:
+def save_jobs(group_name: str | None, jobs: list[Job], should_replace: bool) -> int:
     db = cron_times.db.get_db()
 
     # delete existing jobs
-    if group_name:
+    if should_replace:
         with closing(db.cursor()) as cur:
             cur.execute(
                 """
@@ -214,7 +214,7 @@ def save_jobs(group_name: str | None, jobs: list[Job]) -> int:
 
 @click.command()
 @click.argument("taskfile", nargs=-1, type=click.Path(exists=True, path_type=Path))
-@click.option("-g", "--group", help="group name")
+@click.option("-g", "--group", help="group name. It uses filename if not specified.")
 @click.option(
     "-m",
     "--mode",
@@ -229,11 +229,10 @@ def load_taskfile(taskfile: list[Path], group: str | None, mode: str):
     logger.addHandler(flask.logging.default_handler)
     logger.setLevel(logging.INFO)
 
-    if mode == "replace" and group is None:
-        raise click.BadParameter(
-            "Group must be specified in replace mode. "
-            "Use --mode=append to insert jobs in append mode."
-        )
+    if group is None:
+        logger.info("Group name is not specified. Use filename as group name.")
+
+    should_replace = mode == "replace"
 
     yaml = ruamel.yaml.YAML(typ="safe")
 
@@ -244,14 +243,15 @@ def load_taskfile(taskfile: list[Path], group: str | None, mode: str):
             raw_config = yaml.load(fd)
 
         try:
-            f = TaskFile.model_validate(raw_config)
+            config = TaskFile.model_validate(raw_config)
         except pydantic.ValidationError as e:
             logger.error(f"Failed to load {path}: {e}")
             sys.exit(1)
 
-        save_jobs(
-            group_name=group if mode == "replace" else None,
-            jobs=f.jobs,
+        n = save_jobs(
+            group_name=group or f"file-{path.stem}",
+            jobs=config.jobs,
+            should_replace=should_replace,
         )
 
-        logger.info(f"Loaded {len(f.jobs)} jobs from {path}")
+        logger.info(f"Loaded {n} jobs from {path}")

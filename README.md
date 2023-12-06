@@ -62,11 +62,8 @@ jobs:
 After the YAML file is ready, you can import it with the following command:
 
 ```bash
-flask --app cron_times load-taskfile --group test /path/to/jobs.yaml
+flask --app cron_times load-taskfile /path/to/jobs.yaml
 ```
-
-The `--group` option is used to assign group name to the jobs.
-This is an hidden information to be used on updating the jobs list and will not be shown on the web page.
 
 
 ## Configuration
