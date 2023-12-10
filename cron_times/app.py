@@ -96,7 +96,7 @@ def get_plans():
     query_time_end = now + datetime.timedelta(days=2)
 
     # get plans
-    jobs = Job.query()
+    jobs = Job.objects_iter()
     plans: list[tuple[datetime.datetime, Job | Literal[":now"]]] = [
         (now, ":now"),
     ]
@@ -155,7 +155,7 @@ def match_job(query: str, job: Job) -> bool:
 def get_query_options():
     options = set()
 
-    for job in Job.query():
+    for job in Job.objects_iter():
         options.add(clean_query_text(job.name))
         for label in job.labels:
             options.add(clean_query_text(label))

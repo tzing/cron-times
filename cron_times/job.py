@@ -132,19 +132,50 @@ class Job(pydantic.BaseModel):
             return raw
         return markdown(raw)
 
-    @classmethod
-    def query(cls) -> Iterator[Job]:
-        """Get jobs."""
+    def delete(self) -> bool:
+        """Delete this job from database."""
+        logger.debug("Delete job %s from database", self.key)
+
         db = cron_times.db.get_db()
         with closing(db.cursor()) as cur:
             cur.execute(
                 """
-                SELECT
-                    name, schedule, timezone, description, labels, metadata, enabled
-                FROM job
-                """
+                DELETE FROM job
+                WHERE "group" = :group AND key = :key
+                """,
+                {"group": self.group, "key": self.key},
             )
+            db.commit()
+
+        return cur.rowcount > 0
+
+    @classmethod
+    def objects_iter(cls, *, group: str | None = None) -> Iterator[Job]:
+        """Get jobs."""
+        logger.debug("Get jobs from database")
+
+        query = textwrap.dedent(
+            """
+            SELECT
+                "group", key, name, schedule, timezone, description, labels, metadata, enabled
+            FROM job
+            """
+        )
+        data = {}
+
+        if group:
+            query += 'WHERE "group" = :group'
+            data["group"] = group
+
+        logger.debug("Query= %s", query)
+        logger.debug("Data= %r", data)
+
+        db = cron_times.db.get_db()
+        with closing(db.cursor()) as cur:
+            cur.execute(query, data)
             for (
+                group,
+                key,
                 name,
                 schedule,
                 timezone,
@@ -154,6 +185,8 @@ class Job(pydantic.BaseModel):
                 enabled,
             ) in cur:
                 yield cls(
+                    group=group,
+                    key=key,
                     name=name,
                     schedule=schedule,
                     timezone=timezone,
@@ -165,7 +198,7 @@ class Job(pydantic.BaseModel):
                 )
 
     @classmethod
-    def upsert(cls, jobs: list[Job], update_fields: list[FieldName]) -> int:
+    def objects_upsert(cls, jobs: list[Job], update_fields: list[FieldName]) -> int:
         """Save this job to database."""
         query = get_job_insert_command(tuple(update_fields))
         logger.debug("Save jobs to database")
@@ -196,62 +229,40 @@ class Job(pydantic.BaseModel):
 
         return cur.rowcount
 
+    @classmethod
+    def objects_sync(
+        cls,
+        *,
+        group: str,
+        jobs: list[Job],
+        update_fields: list[FieldName],
+        missing: Literal["ignore", "inactive", "remove"],
+    ):
+        """Sync jobs in database with the given job list."""
+        # get existing jobs from database
+        existing_jobs = {job.key: job for job in cls.objects_iter(group=group)}
 
-class TaskFile(pydantic.BaseModel):
-    """Task file definition."""
+        # remove jobs that are missing from taskfile
+        jobs_to_save = {job.key: job for job in jobs}
+        missing_jobs = set(existing_jobs) - set(jobs_to_save)
 
-    group: str | None = None
-    """Group name for internal use."""
-    jobs: list[Job] = pydantic.Field(default_factory=list)
-    """List of jobs."""
-
-
-@click.command()
-@click.argument("file", nargs=-1, type=click.Path(exists=True, path_type=Path))
-def read_file(file: list[Path]):
-    """Load taskfile into database."""
-    logger.addHandler(flask.logging.default_handler)
-    logger.setLevel(logging.INFO)
-
-    yaml = ruamel.yaml.YAML(typ="safe")
-
-    for path in file:
-        logger.info("Loading %s", path)
-
-        with path.open() as fd:
-            raw_config = yaml.load(fd)
-
-        try:
-            config = TaskFile.model_validate(raw_config)
-        except pydantic.ValidationError as e:
-            logger.error(f"Failed to parse {path}: {e}")
-            sys.exit(1)
-
-        group_name = config.group or f"file-{path.stem}"
-        jobs_to_save = []
-        for orig_job in config.jobs:
-            jobs_to_save.append(
-                orig_job.model_copy(
-                    update={
-                        "group": group_name,
-                        "description_is_html": False,
-                    }
+        for key in missing_jobs:
+            if missing == "ignore":
+                continue
+            elif missing == "inactive":
+                logger.debug("Set job '%s' to inactive", key)
+                jobs_to_save[key] = existing_jobs[key].model_copy(
+                    update={"enabled": False}
                 )
-            )
+            elif missing == "remove":
+                existing_jobs[key].delete()
 
-        n = Job.upsert(
-            jobs_to_save,
-            update_fields=(
-                "name",
-                "schedule",
-                "timezone",
-                "description",
-                "labels",
-                "metadata",
-                "enabled",
-            ),
+        # update jobs that are in taskfile
+        n = Job.objects_upsert(
+            jobs_to_save.values(),
+            update_fields=update_fields,
         )
-        logger.info(f"Loaded {n} jobs from {path}")
+        logger.info(f"Update {n} jobs for {group}")
 
 
 @cache
@@ -280,3 +291,80 @@ def get_job_insert_command(update_fields: tuple[FieldName, ...]) -> str:
         )
 
     return query
+
+
+class TaskFile(pydantic.BaseModel):
+    """Task file definition."""
+
+    group: str | None = None
+    """Group name for internal use."""
+    jobs: list[Job] = pydantic.Field(default_factory=list)
+    """List of jobs."""
+
+
+@click.command()
+@click.argument("file", nargs=-1, type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--missing",
+    type=click.Choice(["ignore", "inactive", "remove"]),
+    default="remove",
+    show_default=True,
+    help="Action to take when a job is missing from the taskfile. "
+    "'ignore' will do nothing. "
+    "'inactive' will set the job to inactive. "
+    "'remove' will remove the job from the database.",
+)
+@click.option(
+    "--log-level",
+    type=click.Choice(["DEBUG", "INFO", "WARNING"]),
+    default="INFO",
+    help="Set log level.",
+)
+def read_file(file: list[Path], missing: str, log_level: int):
+    """Load taskfile into database."""
+    logger.addHandler(flask.logging.default_handler)
+    logger.setLevel(log_level)
+
+    yaml = ruamel.yaml.YAML(typ="safe")
+
+    for path in file:
+        logger.info("Loading %s", path)
+
+        with path.open() as fd:
+            raw_config = yaml.load(fd)
+
+        try:
+            config = TaskFile.model_validate(raw_config)
+        except pydantic.ValidationError as e:
+            logger.error(f"Failed to parse {path}: {e}")
+            sys.exit(1)
+
+        group_name = config.group or f"file-{path.stem}"
+
+        jobs_to_save = []
+        for orig_job in config.jobs:
+            jobs_to_save.append(
+                orig_job.model_copy(
+                    update={
+                        "group": group_name,
+                        "description_is_html": False,
+                    }
+                )
+            )
+
+        logger.info("Found %d jobs in %s", len(jobs_to_save), path)
+
+        Job.objects_sync(
+            group=group_name,
+            jobs=jobs_to_save,
+            update_fields=(
+                "name",
+                "schedule",
+                "timezone",
+                "description",
+                "labels",
+                "metadata",
+                "enabled",
+            ),
+            missing=missing,
+        )
