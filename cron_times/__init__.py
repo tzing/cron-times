@@ -29,7 +29,7 @@ def create_app():
     # commands
     import cron_times.job
 
-    app.cli.add_command(cron_times.job.load_taskfile)
+    app.cli.add_command(cron_times.job.read_file)
 
     # register blueprints
     import cron_times.app

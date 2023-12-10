@@ -26,8 +26,29 @@ def close_db(e=None) -> None:
 
 def init_db() -> None:
     db = get_db()
-    with flask.current_app.open_resource("schema.sql", mode="r") as fd:
-        db.executescript(fd.read())
+    db.executescript(
+        """
+        DROP TABLE IF EXISTS job;
+
+        CREATE TABLE job (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            "group" TEXT,
+            key TEXT,
+
+            name TEXT NOT NULL,
+            schedule TEXT NOT NULL,
+            timezone TEXT NOT NULL DEFAULT 'UTC',
+            description TEXT,
+            labels TEXT,
+            metadata TEXT,
+            enabled BOOLEAN NOT NULL DEFAULT 1,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+            UNIQUE ("group", key)
+        );
+        """
+    )
 
 
 @click.command("init-db")

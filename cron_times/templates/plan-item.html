@@ -11,26 +11,26 @@
         <div class="col-sm-12 col-md-10">
             <div class="card-body">
                 {# title #}
-                <h5 class="card-title mb-2">{{ name | default('<name>') }}</h5>
+                <h5 class="card-title mb-2">{{ job.name | default('<name>') }}</h5>
 
                 {# labels #}
-                {% if labels or not enabled %}
+                {% if job.labels or not job.enabled %}
                 <div class="mb-2">
-                    {% if not enabled %}
+                    {% if not job.enabled %}
                     <div class="badge text-bg-warning">
                         <i class="bi bi-pause"></i>
                         Suspended
                     </div>
                     {% endif %}
-                    {% for label in labels %}
+                    {% for label in job.labels %}
                     <span class='badge bg-secondary'>{{ label }}</span>
                     {% endfor %}
                 </div>
                 {% endif %}
 
                 {# description #}
-                {% if description %}
-                {{ description | safe }}
+                {% if job.description %}
+                {{ job.description | safe }}
                 {% endif %}
 
                 {# metadata #}
@@ -43,14 +43,14 @@
                         <dl class="row mt-2 mb-0">
                             <dt class="col-sm-3">schedule</dt>
                             <dd class="col-sm-9">
-                                <code>{{ schedule | default('? ? ? ? ?') }}</code>
-                                ({{ timezone }})
+                                <code>{{ job.schedule | default('? ? ? ? ?') }}</code>
+                                ({{ job.timezone }})
                             </dd>
 
                             <dt class="col-sm-3">run at</dt>
                             <dd class="col-sm-9">{{ time | datetime_format('%Y-%m-%d %H:%M:%S %z') }} ({{ time | naturaltime }})</dd>
 
-                            {% for name, value in metadata.items() %}
+                            {% for name, value in job.metadata.items() %}
                             <dt class="col-sm-3">{{ name }}</dt>
                             <dd class="col-sm-9">{{ value }}</dd>
                             {% endfor %}

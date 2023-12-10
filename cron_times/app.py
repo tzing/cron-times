@@ -12,12 +12,11 @@ import croniter
 import flask
 import rapidfuzz.process
 
-import cron_times.job
+from cron_times.job import Job
 
 if typing.TYPE_CHECKING:
     from typing import Literal
 
-    from cron_times.job import Job
 
 bp = flask.Blueprint("cron_times", __name__)
 
@@ -97,7 +96,7 @@ def get_plans():
     query_time_end = now + datetime.timedelta(days=2)
 
     # get plans
-    jobs = cron_times.job.get_jobs()
+    jobs = Job.query()
     plans: list[tuple[datetime.datetime, Job | Literal[":now"]]] = [
         (now, ":now"),
     ]
@@ -126,13 +125,7 @@ def get_plans():
                 "plan-item.html",
                 uuid=uuid.uuid1(),
                 time=time,
-                name=job.name,
-                schedule=job.schedule,
-                timezone=job.timezone,
-                description=job.description_rendered,
-                labels=job.labels,
-                metadata=job.metadata,
-                enabled=job.enabled,
+                job=job,
             )
 
         cards.append(card)
@@ -146,7 +139,7 @@ def match_job(query: str, job: Job) -> bool:
 
     if query in clean_query_text(job.name):
         return True
-    if query in clean_query_text(job.description):
+    if query in clean_query_text(job.raw_description):
         return True
     for label in job.labels:
         if query in clean_query_text(label):
@@ -162,7 +155,7 @@ def match_job(query: str, job: Job) -> bool:
 def get_query_options():
     options = set()
 
-    for job in cron_times.job.get_jobs():
+    for job in Job.query():
         options.add(clean_query_text(job.name))
         for label in job.labels:
             options.add(clean_query_text(label))

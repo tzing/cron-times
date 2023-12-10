@@ -3,16 +3,17 @@ from __future__ import annotations
 import json
 import logging
 import sys
+import textwrap
 import typing
 import zoneinfo
 from contextlib import closing
+from functools import cache
 from pathlib import Path
 from typing import Annotated
 
 import click
 import croniter
 import flask.logging
-import markupsafe
 import mistune
 import pydantic
 import ruamel.yaml
@@ -21,12 +22,23 @@ import cron_times.db
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
-    from typing import Any
+    from typing import Any, Literal
 
     from pydantic_core.core_schema import (
         SerializerFunctionWrapHandler,
         ValidatorFunctionWrapHandler,
     )
+
+    FieldName = Literal[
+        "name",
+        "schedule",
+        "timezone",
+        "description",
+        "labels",
+        "metadata",
+        "enabled",
+    ]
+
 
 logger = logging.getLogger(__name__)
 markdown = mistune.create_markdown(
@@ -69,8 +81,13 @@ def _serialize_json(v: Any) -> str:
 
 
 class Job(pydantic.BaseModel):
+    """Job definition to be read from taskfile."""
+
     group: str | None = None
     """Key for job group."""
+    raw_key: str | None = pydantic.Field(default=None, alias="key")
+    """Key for job."""
+
     name: str
     """Name of job."""
     schedule: Annotated[str, pydantic.AfterValidator(_validate_cron_expr)]
@@ -81,7 +98,7 @@ class Job(pydantic.BaseModel):
         pydantic.WrapSerializer(_serialize_timezone),
     ] = pydantic.Field(zoneinfo.ZoneInfo("UTC"))
     """Timezone."""
-    description: str | None = None
+    raw_description: str | None = pydantic.Field(default=None, alias="description")
     """Description of job."""
     labels: Annotated[
         list[str],
@@ -97,93 +114,37 @@ class Job(pydantic.BaseModel):
     """Metadata of job."""
     enabled: bool = True
     """Whether job is enabled."""
-    use_markdown: bool = True
-    """Whether to render description from markdown to HTML."""
+    description_is_html: bool = False
+    """Whether description is HTML."""
 
     @pydantic.computed_field
     @property
-    def description_rendered(self) -> str:
-        raw = self.description or ""
-        if self.use_markdown:
-            return markdown(raw)
-        return markupsafe.escape(raw).replace("\n", markupsafe.Markup("<br>"))
+    def key(self) -> str:
+        """Key for job. It uses inputted "key" if specified, otherwise "name"."""
+        return self.raw_key or self.name
 
+    @pydantic.computed_field
+    @property
+    def description(self) -> str:
+        """Rendered HTML job description."""
+        raw = self.raw_description or ""
+        if self.description_is_html:
+            return raw
+        return markdown(raw)
 
-def get_jobs() -> Iterator[Job]:
-    db = cron_times.db.get_db()
-    with closing(db.cursor()) as cur:
-        cur.execute(
-            """
-            SELECT
-                "group",
-                name,
-                schedule,
-                timezone,
-                description,
-                labels,
-                metadata,
-                enabled,
-                use_markdown
-            FROM job
-            """
-        )
-        for (
-            group,
-            name,
-            schedule,
-            timezone,
-            description,
-            labels,
-            metadata,
-            enabled,
-            use_markdown,
-        ) in cur:
-            yield Job(
-                group=group,
-                name=name,
-                schedule=schedule,
-                timezone=timezone,
-                description=description,
-                labels=labels,
-                metadata=metadata,
-                enabled=enabled,
-                use_markdown=use_markdown,
-            )
-
-
-class TaskFile(pydantic.BaseModel):
-    jobs: list[Job] = pydantic.Field(default_factory=list)
-
-
-def save_jobs(group_name: str | None, jobs: list[Job], should_replace: bool) -> int:
-    db = cron_times.db.get_db()
-
-    # delete existing jobs
-    if should_replace:
+    @classmethod
+    def query(cls) -> Iterator[Job]:
+        """Get jobs."""
+        db = cron_times.db.get_db()
         with closing(db.cursor()) as cur:
             cur.execute(
                 """
-                DELETE FROM job
-                WHERE "group" = :group
-                """,
-                {"group": group_name},
+                SELECT
+                    name, schedule, timezone, description, labels, metadata, enabled
+                FROM job
+                """
             )
-            logger.info(f"Deleted {cur.rowcount} existing {group_name} job(s)")
-            db.commit()
-
-    # update group field
-    if group_name:
-        updated_jobs = []
-        for job in jobs:
-            updated_jobs.append(job.model_copy(update={"group": group_name}))
-        jobs = updated_jobs
-
-    # save to database
-    with closing(db.cursor()) as cur:
-        cur.executemany(
-            """
-            INSERT INTO job (
-                "group",
+            for (
                 name,
                 schedule,
                 timezone,
@@ -191,53 +152,71 @@ def save_jobs(group_name: str | None, jobs: list[Job], should_replace: bool) -> 
                 labels,
                 metadata,
                 enabled,
-                use_markdown
-            )
-            VALUES (
-                :group,
-                :name,
-                :schedule,
-                :timezone,
-                :description,
-                :labels,
-                :metadata,
-                :enabled,
-                :use_markdown
-            )
-            """,
-            (job.model_dump() for job in jobs),
-        )
-        db.commit()
+            ) in cur:
+                yield cls(
+                    name=name,
+                    schedule=schedule,
+                    timezone=timezone,
+                    description=description,
+                    labels=labels,
+                    metadata=metadata,
+                    enabled=enabled,
+                    description_is_html=True,
+                )
 
-    return cur.rowcount
+    @classmethod
+    def upsert(cls, jobs: list[Job], update_fields: list[FieldName]) -> int:
+        """Save this job to database."""
+        query = get_job_insert_command(tuple(update_fields))
+        logger.debug("Save jobs to database")
+        logger.debug(f"Query= {query}")
+
+        data = [
+            job.model_dump(
+                include={
+                    "group",
+                    "key",
+                    "name",
+                    "schedule",
+                    "timezone",
+                    "description",
+                    "labels",
+                    "metadata",
+                    "enabled",
+                }
+            )
+            for job in jobs
+        ]
+        logger.debug(f"Data= {data!r}")
+
+        db = cron_times.db.get_db()
+        with closing(db.cursor()) as cur:
+            cur.executemany(query, data)
+            db.commit()
+
+        return cur.rowcount
+
+
+class TaskFile(pydantic.BaseModel):
+    """Task file definition."""
+
+    group: str | None = None
+    """Group name for internal use."""
+    jobs: list[Job] = pydantic.Field(default_factory=list)
+    """List of jobs."""
 
 
 @click.command()
-@click.argument("taskfile", nargs=-1, type=click.Path(exists=True, path_type=Path))
-@click.option("-g", "--group", help="group name. It uses filename if not specified.")
-@click.option(
-    "-m",
-    "--mode",
-    type=click.Choice(["replace", "append"], False),
-    default="replace",
-    help="Insert mode; "
-    "'replace' to delete all jobs with the same group and insert new ones, "
-    "'append' to insert new jobs without deleting existing ones.",
-)
-def load_taskfile(taskfile: list[Path], group: str | None, mode: str):
+@click.argument("file", nargs=-1, type=click.Path(exists=True, path_type=Path))
+def read_file(file: list[Path]):
     """Load taskfile into database."""
     logger.addHandler(flask.logging.default_handler)
     logger.setLevel(logging.INFO)
 
-    if group is None:
-        logger.info("Group name is not specified. Use filename as group name.")
-
-    should_replace = mode == "replace"
-
     yaml = ruamel.yaml.YAML(typ="safe")
 
-    for path in taskfile:
-        logger.debug(f"Start reading {path}")
+    for path in file:
+        logger.info("Loading %s", path)
 
         with path.open() as fd:
             raw_config = yaml.load(fd)
@@ -245,13 +224,59 @@ def load_taskfile(taskfile: list[Path], group: str | None, mode: str):
         try:
             config = TaskFile.model_validate(raw_config)
         except pydantic.ValidationError as e:
-            logger.error(f"Failed to load {path}: {e}")
+            logger.error(f"Failed to parse {path}: {e}")
             sys.exit(1)
 
-        n = save_jobs(
-            group_name=group or f"file-{path.stem}",
-            jobs=config.jobs,
-            should_replace=should_replace,
+        group_name = config.group or f"file-{path.stem}"
+        jobs_to_save = []
+        for orig_job in config.jobs:
+            jobs_to_save.append(
+                orig_job.model_copy(
+                    update={
+                        "group": group_name,
+                        "description_is_html": False,
+                    }
+                )
+            )
+
+        n = Job.upsert(
+            jobs_to_save,
+            update_fields=(
+                "name",
+                "schedule",
+                "timezone",
+                "description",
+                "labels",
+                "metadata",
+                "enabled",
+            ),
+        )
+        logger.info(f"Loaded {n} jobs from {path}")
+
+
+@cache
+def get_job_insert_command(update_fields: tuple[FieldName, ...]) -> str:
+    query = textwrap.dedent(
+        """
+        INSERT INTO job (
+            "group", key, name, schedule, timezone, description, labels,
+            metadata, enabled
+        )
+        VALUES
+        (
+            :group, :key, :name, :schedule, :timezone, :description, :labels,
+            :metadata, :enabled
+        )
+        """
+    )
+
+    update_field_command = []
+    for field in update_fields:
+        update_field_command.append(f"{field} = EXCLUDED.{field}")
+
+    if update_field_command:
+        query += 'ON CONFLICT ("group", key) DO UPDATE SET ' + ",\n  ".join(
+            update_field_command
         )
 
-        logger.info(f"Loaded {n} jobs from {path}")
+    return query

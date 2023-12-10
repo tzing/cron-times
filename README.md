@@ -34,10 +34,17 @@ There is no job listed by default.
 You can describe your cronjobs in YAML format:
 
 ```yaml
-# IMPORTANT: The YAML file must start with `jobs:`
+# Optional group name; if not set, it will use the filename
+group: Sample group
+
+# Job list
 jobs:
 
-  - # Job name
+  - # Unique key within the group for each job
+    # This field is invisible to users and only used for internal reference
+    # If not set, it will use job name as the key
+    key: sample-task
+    # Job name
     name: Sample task
     # Cronjob schedule, in crontab format
     schedule: "0 10/3 * * *"
@@ -55,14 +62,12 @@ jobs:
     # Optional flag to indicate if the job is enabled
     # If not set, it will be recognized as enabled
     enabled: true
-    # Optional flag to turn off markdown rendering for description
-    use_markdown: true
 ```
 
 After the YAML file is ready, you can import it with the following command:
 
 ```bash
-flask --app cron_times load-taskfile /path/to/jobs.yaml
+flask --app cron_times read-file /path/to/jobs.yaml
 ```
 
 
