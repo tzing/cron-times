@@ -239,11 +239,20 @@ class Job(pydantic.BaseModel):
         missing: Literal["ignore", "inactive", "remove"],
     ):
         """Sync jobs in database with the given job list."""
+        # prepare jobs to save
+        jobs_to_save = {}
+        for job in jobs:
+            jobs_to_save[job.key] = job.model_copy(
+                update={
+                    "group": group,
+                    "description_is_html": False,
+                }
+            )
+
         # get existing jobs from database
         existing_jobs = {job.key: job for job in cls.objects_iter(group=group)}
 
         # remove jobs that are missing from taskfile
-        jobs_to_save = {job.key: job for job in jobs}
         missing_jobs = set(existing_jobs) - set(jobs_to_save)
 
         for key in missing_jobs:
@@ -342,22 +351,11 @@ def read_file(file: list[Path], missing: str, log_level: int):
 
         group_name = config.group or f"file-{path.stem}"
 
-        jobs_to_save = []
-        for orig_job in config.jobs:
-            jobs_to_save.append(
-                orig_job.model_copy(
-                    update={
-                        "group": group_name,
-                        "description_is_html": False,
-                    }
-                )
-            )
-
-        logger.info("Found %d jobs in %s", len(jobs_to_save), path)
+        logger.info("Found %d jobs in %s", len(config.jobs), path)
 
         Job.objects_sync(
             group=group_name,
-            jobs=jobs_to_save,
+            jobs=config.jobs,
             update_fields=(
                 "name",
                 "schedule",
