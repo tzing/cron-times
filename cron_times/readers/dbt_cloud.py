@@ -93,17 +93,31 @@ def read_dbt_cloud(
     logger.debug("project id(s): %s", project_id)
     logger.debug("environment id(s): %s", environment_id)
 
-    # list jobs
-    response = httpx.get(
-        url=f"https://cloud.getdbt.com/api/v2/accounts/{account_id}/jobs/",
+    # prepare http client
+    http_client = httpx.Client(
+        base_url="https://cloud.getdbt.com/",
         headers={
             "Accept": "application/json",
             "Authorization": f"Token {token}",
         },
     )
+
+    # list accounts
+    account_name = get_account_name(http_client, account_id)
+    project_names = get_project_names(http_client, account_id, project_id)
+    environment_names = get_environment_names(
+        http_client, account_id, project_names, environment_id
+    )
+
+    def add_comment(key: str, context: dict[str, str]) -> str:
+        if name := context.get(key):
+            return f"{name} ({key})"
+        return str(key)
+
+    # list jobs
+    response = http_client.get(url=f"api/v2/accounts/{account_id}/jobs/")
     response.raise_for_status()
 
-    # parse response
     jobs = []
     for data in response.json().get("data", []):
         dbt_job = DbtJob(**data)
@@ -133,6 +147,7 @@ def read_dbt_cloud(
             continue
 
         ct_job = Job(
+            key=str(dbt_job.id),
             name=dbt_job.name,
             schedule=dbt_job.schedule.cron,
             description=render_template_string(
@@ -141,10 +156,10 @@ def read_dbt_cloud(
             ),
             labels=["dbt cloud"],
             metadata={
-                "account id": dbt_job.account_id,
-                "project id": dbt_job.project_id,
-                "environment id": dbt_job.environment_id,
-                "job id": dbt_job.id,
+                "account": f"{account_name} ({account_id})",
+                "project": add_comment(dbt_job.project_id, project_names),
+                "environment": add_comment(dbt_job.environment_id, environment_names),
+                "job": f"{dbt_job.name} ({dbt_job.id})",
                 "url": dbt_job.url,
             },
         )
@@ -161,6 +176,51 @@ def read_dbt_cloud(
         update_fields=update_field,
         missing=missing,
     )
+
+
+def get_account_name(http_client: httpx.Client, account_id: int) -> str:
+    response = http_client.get("/api/v3/accounts/")
+    response.raise_for_status()
+
+    for data in response.json().get("data", []):
+        if account_id == data["id"]:
+            return data["name"]
+
+
+def get_project_names(
+    http_client: httpx.Client, account_id: int, project_ids: list[int]
+) -> dict[int, str]:
+    response = http_client.get(f"/api/v3/accounts/{account_id}/projects/")
+    response.raise_for_status()
+
+    project_names = {}
+    for data in response.json().get("data", []):
+        if project_ids and data["id"] not in project_ids:
+            continue
+        project_names[data["id"]] = data["name"]
+
+    return project_names
+
+
+def get_environment_names(
+    http_client: httpx.Client,
+    account_id: int,
+    project_ids: list[int],
+    environment_ids: list[int],
+):
+    environment_names = {}
+    for project_id in project_ids:
+        response = http_client.get(
+            f"/api/v3/accounts/{account_id}/projects/{project_id}/environments/"
+        )
+        response.raise_for_status()
+
+        for data in response.json().get("data", []):
+            if environment_ids and data["id"] not in environment_ids:
+                continue
+            environment_names[data["id"]] = data["name"]
+
+    return environment_names
 
 
 DESCRIPTION_TEMPLATE = """
