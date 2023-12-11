@@ -254,6 +254,7 @@ class Job(pydantic.BaseModel):
                 jobs_to_save[key] = existing_jobs[key].model_copy(
                     update={"enabled": False}
                 )
+                update_fields = set(update_fields) | {"enabled"}
             elif missing == "remove":
                 existing_jobs[key].delete()
 
@@ -305,6 +306,7 @@ class TaskFile(pydantic.BaseModel):
 @click.command()
 @click.argument("file", nargs=-1, type=click.Path(exists=True, path_type=Path))
 @click.option(
+    "-m",
     "--missing",
     type=click.Choice(["ignore", "inactive", "remove"]),
     default="remove",

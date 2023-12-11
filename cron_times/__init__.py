@@ -28,8 +28,10 @@ def create_app():
 
     # commands
     import cron_times.job
+    import cron_times.readers.dbt_cloud
 
     app.cli.add_command(cron_times.job.read_file)
+    app.cli.add_command(cron_times.readers.dbt_cloud.read_dbt_cloud)
 
     # register blueprints
     import cron_times.app

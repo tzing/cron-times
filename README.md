@@ -70,6 +70,19 @@ After the YAML file is ready, you can import it with the following command:
 flask --app cron_times read-file /path/to/jobs.yaml
 ```
 
+### Built-in job list reader
+
+Cron-times provides some built-in job list reader for convenience:
+
+#### dbt cloud
+
+Reads schedule job list from [dbt cloud].
+
+```bash
+flask --app cron_times read-dbt-cloud --help
+```
+
+[dbt cloud]: https://docs.getdbt.com/docs/cloud/about-cloud/dbt-cloud-features
 
 ## Configuration
 
