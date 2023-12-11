@@ -13,12 +13,12 @@ from typing import Annotated
 
 import click
 import croniter
-import flask.logging
 import mistune
 import pydantic
 import ruamel.yaml
 
 import cron_times.db
+import cron_times.logging
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
@@ -322,8 +322,7 @@ class TaskFile(pydantic.BaseModel):
 )
 def read_file(file: list[Path], missing: str, log_level: int):
     """Load taskfile into database."""
-    logger.addHandler(flask.logging.default_handler)
-    logger.setLevel(log_level)
+    cron_times.logging.setup_logging(log_level)
 
     yaml = ruamel.yaml.YAML(typ="safe")
 
