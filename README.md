@@ -34,18 +34,13 @@ There is no job listed by default.
 You can describe your cronjobs in YAML format:
 
 ```yaml
-# Optional group name; if not set, it will use the filename
-group: Sample group
-
-# Job list
 jobs:
-
   - # Unique key within the group for each job
     # This field is invisible to users and only used for internal reference
     # If not set, it will use job name as the key
-    key: sample-task
+    key: sample-job
     # Job name
-    name: Sample task
+    name: Sample job
     # Cronjob schedule, in crontab format
     schedule: "0 10/3 * * *"
     # Optional timezone, default to UTC

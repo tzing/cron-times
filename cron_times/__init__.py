@@ -24,14 +24,9 @@ def create_app():
     import cron_times.db
 
     app.teardown_appcontext(cron_times.db.close_db)
-    app.cli.add_command(cron_times.db.init_db_command)
 
     # commands
-    import cron_times.job
-    import cron_times.readers.dbt_cloud
-
-    app.cli.add_command(cron_times.job.read_file)
-    app.cli.add_command(cron_times.readers.dbt_cloud.read_dbt_cloud)
+    app.cli.add_command(cron_times.db.command_init_db)
 
     # register blueprints
     import cron_times.app
