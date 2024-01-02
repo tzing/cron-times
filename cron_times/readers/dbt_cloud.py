@@ -7,7 +7,7 @@ import httpx
 from flask import render_template_string
 from pydantic import BaseModel, computed_field
 
-from cron_times.job import Job
+from cron_times.jobdef import JobSpec, sync_jobs_to_db, sync_jobs_to_file
 from cron_times.logging import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,13 @@ logger = logging.getLogger(__name__)
     "This option can be used multiple times.",
 )
 @click.option(
+    "-o",
+    "--output",
+    default=":db",
+    show_default=True,
+    help="Output destination. Use ':db' to save to database.",
+)
+@click.option(
     "-f",
     "--update-field",
     multiple=True,
@@ -60,17 +67,6 @@ logger = logging.getLogger(__name__)
     "This option can be used multiple times.",
 )
 @click.option(
-    "-m",
-    "--missing",
-    type=click.Choice(["ignore", "inactive", "remove"]),
-    default="remove",
-    show_default=True,
-    help="Action to take when a job is missing from the taskfile. "
-    "'ignore' will do nothing. "
-    "'inactive' will set the job to inactive. "
-    "'remove' will remove the job from the database.",
-)
-@click.option(
     "--log-level",
     type=click.Choice(["DEBUG", "INFO", "WARNING"]),
     default="INFO",
@@ -81,7 +77,7 @@ def read_dbt_cloud(
     token: str,
     project_id: list[int],
     environment_id: list[int],
-    missing: str,
+    output: str,
     update_field: list[str],
     log_level: int,
 ):
@@ -120,7 +116,7 @@ def read_dbt_cloud(
 
     jobs = []
     for data in response.json().get("data", []):
-        dbt_job = DbtJob(**data)
+        dbt_job = DbtJob.model_validate(data)
 
         # filter: only return selected project id and environment ids
         if project_id and dbt_job.project_id not in project_id:
@@ -146,7 +142,7 @@ def read_dbt_cloud(
             logger.debug("Skip #%d (%s): not scheduled", dbt_job.id, dbt_job.name)
             continue
 
-        ct_job = Job(
+        ct_job = JobSpec(
             key=str(dbt_job.id),
             name=dbt_job.name,
             schedule=dbt_job.schedule.cron,
@@ -170,12 +166,18 @@ def read_dbt_cloud(
         jobs.append(ct_job)
 
     # save
-    Job.objects_sync(
-        group=f"dbt-cloud-{account_id}",
-        jobs=jobs,
-        update_fields=update_field,
-        missing=missing,
-    )
+    if output == ":db":
+        sync_jobs_to_db(
+            group=f"dbt-cloud:{account_id}",
+            input_jobs=jobs,
+            fields_to_merge=update_field,
+        )
+    else:
+        sync_jobs_to_file(
+            path=output,
+            input_jobs=jobs,
+            fields_to_merge=update_field,
+        )
 
 
 def get_account_name(http_client: httpx.Client, account_id: int) -> str:
@@ -226,13 +228,13 @@ def get_environment_names(
 DESCRIPTION_TEMPLATE = """
 {{ job.description }}
 
-{% if job.execute_steps %}
+{% if job.execute_steps -%}
 ```bash
-{% for cmd in job.execute_steps %}
+{% for cmd in job.execute_steps -%}
 {{ cmd }}
-{% endfor %}
+{% endfor -%}
 ```
-{% endif %}
+{% endif -%}
 """
 
 

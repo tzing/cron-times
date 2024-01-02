@@ -52,7 +52,7 @@
 
                             {% for name, value in job.metadata.items() %}
                             <dt class="col-sm-3">{{ name }}</dt>
-                            <dd class="col-sm-9">{{ value }}</dd>
+                            <dd class="col-sm-9">{{ value | safe }}</dd>
                             {% endfor %}
                         </dl>
                     </div>

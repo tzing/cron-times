@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import textwrap
 import typing
 import zoneinfo
 from contextlib import closing
@@ -10,6 +11,8 @@ from typing import Annotated
 
 import click
 import flask
+import markupsafe
+import mistune
 import pydantic
 
 import cron_times.logging
@@ -21,6 +24,10 @@ if typing.TYPE_CHECKING:
     from pydantic_core.core_schema import ValidatorFunctionWrapHandler
 
 logger = logging.getLogger(__name__)
+markdown = mistune.create_markdown(
+    hard_wrap=True,
+    plugins=["strikethrough", "footnotes", "table", "url", "task_lists"],
+)
 
 
 def get_db() -> sqlite3.Connection:
@@ -73,7 +80,7 @@ class Job(pydantic.BaseModel):
     ]
     """Timezone for the schedule."""
 
-    description: str | None
+    raw_description: str | None = pydantic.Field(default=None, alias="description")
     """Description of the job."""
 
     labels: Annotated[
@@ -82,14 +89,34 @@ class Job(pydantic.BaseModel):
     ] = pydantic.Field(default_factory=list)
     """Labels for the job."""
 
-    metadata: Annotated[
+    raw_metadata: Annotated[
         dict[str, pydantic.JsonValue],
         pydantic.WrapValidator(_wrap_validate_json),
-    ] = pydantic.Field(default_factory=dict)
+    ] = pydantic.Field(default_factory=dict, alias="metadata")
     """Metadata for the job."""
 
     enabled: bool = True
     """Whether the job is enabled."""
+
+    @pydantic.computed_field
+    @property
+    def description(self) -> str:
+        """Rendered HTML job description."""
+        raw = self.raw_description or ""
+        raw = textwrap.dedent(raw)
+        return markdown(raw)
+
+    @pydantic.computed_field
+    @property
+    def metadata(self) -> dict[str, str]:
+        """Rendered HTML for metadata."""
+        output = {}
+        for key, value in self.raw_metadata.items():
+            value = markupsafe.escape(value)
+            if value.startswith(("http://", "https://")):
+                value = f'<a href="{value}">{value}</a>'
+            output[key] = value
+        return output
 
 
 def iter_jobs(where_group: str | None = None) -> Iterator[Job]:

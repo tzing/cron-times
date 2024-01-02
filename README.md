@@ -6,8 +6,6 @@ Cron-times is the timetable for your cronjobs. It shows you when your cronjobs w
 
 ![screenshot](./screenshot.png)
 
-* Setup job list in YAML format
-* Timezone supported - Able to configure server timezone and show the time in local time
 
 ## Install
 
@@ -31,38 +29,52 @@ The server will be running on http://localhost:5000
 ### Add job(s)
 
 There is no job listed by default.
-You can describe your cronjobs in YAML format:
+You can describe your cronjobs in TOML format:
 
-```yaml
-jobs:
-  - # Unique key within the group for each job
-    # This field is invisible to users and only used for internal reference
-    # If not set, it will use job name as the key
-    key: sample-job
-    # Job name
-    name: Sample job
-    # Cronjob schedule, in crontab format
-    schedule: "0 10/3 * * *"
-    # Optional timezone, default to UTC
-    timezone: Asia/Taipei
-    # Optional job description
-    description: In the description, you *can* use `markdown`
-    # Optional labels
-    labels:
-      - foo
-    # Optional metadata
-    # You can use this field to store any extra information
-    metadata:
-      extra metadata: can be anything
-    # Optional flag to indicate if the job is enabled
-    # If not set, it will be recognized as enabled
-    enabled: true
+```toml
+# Always starts with [[job]]
+# You can add multiple jobs in one file
+[[job]]
+
+# unique key within the group for each job
+# this field is invisible to users and only used for internal reference
+# if not set, it will use job name as the key
+key = "custom-key-01"
+
+# [required] job name
+name = "Sample job"
+
+# [required] cronjob schedule, in crontab format
+schedule = "0 10/3 * * *"
+
+# timezone, default to UTC
+timezone = "Asia/Taipei"
+
+# job description
+description = """
+In the description, you *can* use `markdown`
+"""
+
+# flag to indicate if the job is enabled
+enabled = true
+
+# labels
+labels = [
+    "foo",
+]
+
+# metadata
+# you can use this field to store any extra information
+[job.metadata]
+"extra field" = "can be anything"
+pi = 3.14
+"reference url" = "https://example.com"
 ```
 
-After the YAML file is ready, you can import it with the following command:
+After the TOML file is ready, you can import it with the following command:
 
 ```bash
-flask --app cron_times read-file /path/to/jobs.yaml
+flask --app cron_times read-file /path/to/jobs.toml
 ```
 
 ### Built-in job list reader
