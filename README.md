@@ -108,4 +108,9 @@ SITE_NAME="My cronjobs"
 # Time range to show in the timetable based on current time, in seconds
 TIMETABLE_LOOKBEHIND_SECONDS=86400  # 1day
 TIMETABLE_LOOKAHEAD_SECONDS=172800  # 2days
+
+# Max number of items to show in the timetable
+# If there are more items than this number, it would only return the jobs that is closest to the current time
+# Note that the more items you show, the slower the page will be loaded
+TIMETABLE_MAX_ITEMS=512
 ```

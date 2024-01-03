@@ -15,6 +15,7 @@ def create_app():
         SITE_NAME="Cron Times",
         TIMETABLE_LOOKBEHIND_SECONDS=86400,
         TIMETABLE_LOOKAHEAD_SECONDS=172800,
+        TIMETABLE_MAX_ITEMS=512,
     )
 
     app.config.from_envvar("CRON_TIMES_SETTINGS", silent=True)

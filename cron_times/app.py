@@ -93,17 +93,14 @@ def get_plans():
 
     job_filter = clean_query_text(flask.request.args.get("query"))
 
+    lookbehind_seconds, lookahead_seconds = get_timerange_seconds()
     now = datetime.datetime.now().astimezone()
-    lookbehind_seconds = int(flask.current_app.config["TIMETABLE_LOOKBEHIND_SECONDS"])
-    lookahead_seconds = int(flask.current_app.config["TIMETABLE_LOOKAHEAD_SECONDS"])
     query_time_start = now - datetime.timedelta(seconds=lookbehind_seconds)
     query_time_end = now + datetime.timedelta(seconds=lookahead_seconds)
 
     # get plans
     jobs = cron_times.db.iter_jobs()
-    plans: list[tuple[datetime.datetime, Job | Literal[":now"]]] = [
-        (now, ":now"),
-    ]
+    plans: list[tuple[datetime.datetime, Job | Literal[":now"]]] = []
     for job in jobs:
         if not match_job(job_filter, job):
             continue
@@ -112,6 +109,9 @@ def get_plans():
         for time in croniter.croniter_range(start, end, job.schedule):
             plans.append((time, job))
 
+    # limit the number of plans returned
+    plans = trim_returned_plans(plans)
+    plans.append((now, ":now"))
     plans = sorted(plans, key=lambda x: x[0])
 
     # render
@@ -177,3 +177,42 @@ def clean_query_text(s: str) -> str:
     s = s.strip()
     s = s.casefold()
     return s
+
+
+@functools.cache
+def get_timerange_seconds():
+    lookbehind_seconds = int(flask.current_app.config["TIMETABLE_LOOKBEHIND_SECONDS"])
+    lookahead_seconds = int(flask.current_app.config["TIMETABLE_LOOKAHEAD_SECONDS"])
+    return lookbehind_seconds, lookahead_seconds
+
+
+def trim_returned_plans(plans: list[tuple[datetime.datetime, Job]]):
+    max_item_count = int(flask.current_app.config["TIMETABLE_MAX_ITEMS"])
+    if len(plans) <= max_item_count:
+        return plans
+
+    # get the number of plans to be returned in each time range
+    lookbehind_seconds, lookahead_seconds = get_timerange_seconds()
+    ratio_behind = lookbehind_seconds / (lookahead_seconds + lookbehind_seconds)
+
+    count_behind = round(max_item_count * ratio_behind)
+    count_ahead = max_item_count - count_behind
+
+    # split the plans into two groups
+    now = datetime.datetime.now().astimezone()
+    plans_behind = []
+    plans_ahead = []
+    for time, job in plans:
+        if time < now:
+            plans_behind.append((time, job))
+        else:
+            plans_ahead.append((time, job))
+
+    # trim each group
+    plans_behind = sorted(plans_behind, key=lambda x: x[0])
+    plans_behind = plans_behind[-count_behind:]
+
+    plans_ahead = sorted(plans_ahead, key=lambda x: x[0])
+    plans_ahead = plans_ahead[:count_ahead]
+
+    return plans_behind + plans_ahead
