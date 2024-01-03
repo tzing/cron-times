@@ -102,5 +102,10 @@ export CRON_TIMES_SETTINGS=/path/to/settings.cfg
 You can set the following options:
 
 ```cfg
+# Site name to be used for the page title
 SITE_NAME="My cronjobs"
+
+# Time range to show in the timetable based on current time, in seconds
+TIMETABLE_LOOKBEHIND_SECONDS=86400  # 1day
+TIMETABLE_LOOKAHEAD_SECONDS=172800  # 2days
 ```

@@ -94,8 +94,10 @@ def get_plans():
     job_filter = clean_query_text(flask.request.args.get("query"))
 
     now = datetime.datetime.now().astimezone()
-    query_time_start = now - datetime.timedelta(days=1)
-    query_time_end = now + datetime.timedelta(days=2)
+    lookbehind_seconds = int(flask.current_app.config["TIMETABLE_LOOKBEHIND_SECONDS"])
+    lookahead_seconds = int(flask.current_app.config["TIMETABLE_LOOKAHEAD_SECONDS"])
+    query_time_start = now - datetime.timedelta(seconds=lookbehind_seconds)
+    query_time_end = now + datetime.timedelta(seconds=lookahead_seconds)
 
     # get plans
     jobs = cron_times.db.iter_jobs()

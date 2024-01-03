@@ -13,6 +13,8 @@ def create_app():
         SECRET_KEY="dev",
         DATABASE=os.path.join(app.instance_path, "cron-times.sqlite"),
         SITE_NAME="Cron Times",
+        TIMETABLE_LOOKBEHIND_SECONDS=86400,
+        TIMETABLE_LOOKAHEAD_SECONDS=172800,
     )
 
     app.config.from_envvar("CRON_TIMES_SETTINGS", silent=True)
