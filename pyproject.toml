@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cron-times"
-version = "0.9.0-dev"
+version = "0.9.0"
 description = "Timetable for your cronjobs"
 authors = ["Tzu-Ting <tzingshih@gmail.com>"]
 license = "Apache-2.0"
