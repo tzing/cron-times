@@ -30,11 +30,13 @@ def create_app():
 
     # commands
     import cron_times.jobdef
+    import cron_times.readers.argo_workflow
     import cron_times.readers.dbt_cloud
 
     app.cli.add_command(cron_times.db.command_init_db)
     app.cli.add_command(cron_times.jobdef.command_read_file)
     app.cli.add_command(cron_times.jobdef.init_db_from)
+    app.cli.add_command(cron_times.readers.argo_workflow.read_argo_workflow)
     app.cli.add_command(cron_times.readers.dbt_cloud.read_dbt_cloud)
 
     # register blueprints

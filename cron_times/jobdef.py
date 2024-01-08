@@ -327,7 +327,11 @@ def sync_jobs_to_file(
     job_list: AoT = document.setdefault("job", tomlkit.aot())
 
     for job in merged_jobs.values():
-        job_list.append(job.model_dump(include=output_fields))
+        data = job.model_dump(include=output_fields)
+        null_value_keys = [k for k, v in data.items() if v is None]
+        for k in null_value_keys:
+            del data[k]
+        job_list.append(data)
 
     with path.open("w") as fd:
         tomlkit.dump(document, fd)

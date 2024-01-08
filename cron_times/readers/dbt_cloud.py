@@ -156,12 +156,15 @@ def read_dbt_cloud(
                 "project": add_comment(dbt_job.project_id, project_names),
                 "environment": add_comment(dbt_job.environment_id, environment_names),
                 "job": f"{dbt_job.name} ({dbt_job.id})",
+                "version": None,
                 "url": dbt_job.url,
             },
         )
 
         if dbt_job.dbt_version:
             ct_job.metadata["version"] = dbt_job.dbt_version
+        else:
+            ct_job.metadata.pop("version")
 
         jobs.append(ct_job)
 

@@ -158,11 +158,10 @@ def match_job(query: str, job: Job) -> bool:
 @bp.route("/query-options")
 def get_query_options():
     options = set()
-
     for job in cron_times.db.iter_jobs():
-        options.add(clean_query_text(job.name))
+        options.add(job.name)
         for label in job.labels:
-            options.add(clean_query_text(label))
+            options.add(label)
 
     return "\n".join(f'<option value="{html.escape(o)}">' for o in sorted(options))
 
@@ -172,7 +171,7 @@ def clean_query_text(s: str) -> str:
     if not s:
         return ""
 
-    s = re.sub(r"[^\w\s]", "", s)
+    s = re.sub(r"[^\w\s]", " ", s)
     s = re.sub(r"\s+", " ", s)
     s = s.strip()
     s = s.casefold()
